@@ -16,6 +16,8 @@ public:
 
 	virtual void CreateCurveModels(TArray<TUniquePtr<FCurveModel>>& OutCurveModels) override;
 
+	virtual bool PassesFilter(const FCurveEditorTreeFilter* InFilter) const override;
+
 private:
 	TWeakObjectPtr<UObject> CurveOwner;
 	FRichCurve* CurveToEdit;
@@ -23,15 +25,19 @@ private:
 	FLinearColor CurveColor;
 };
 
+
+
 class FRMECurveEditor : public TSharedFromThis<FRMECurveEditor>
 {
 public:
 	static const FName CurveEditorTabName;
+	static const FName CurveEditorConfigTabName;
 	
 	void Initialize();
+	void OnDestroy();
 
 	void RegisterTabSpawner(const TSharedPtr<class FTabManager>& TabManager, TSharedRef<class FRMEContext> Context);
-
+	void RegisterConfigTabSpawner(const TSharedPtr<class FTabManager>& TabManager);
 	
 protected:
 	void AddNewCurve(class URMECurveContainer* Container);
@@ -56,8 +62,6 @@ private:
 	void SetupCurveEditor();
 
 	URMECurveContainer* GetCurveContainer() const;
-
-	void CurveChanged(TWeakPtr<FRMECurveEditorTreeItem> TreeItemWeak);
 	
 	void AddNewCurveInternal(FVectorCurve& CurveData, UObject* CurveOwner, const FString& ChannelName);
 
@@ -72,6 +76,10 @@ private:
 	TSharedPtr<SWidget> CurveEditorSearchBox;
 	/** The tree widget in the curve editor */
 	TSharedPtr<class SCurveEditorTree> CurveEditorTree;
+
+
+	TSharedPtr<IDetailsView> ConfigWidget;
+	TObjectPtr<class URMECurveEditorConfig> Config = nullptr;
 
 	bool bHasCurveEdited = false;
 };

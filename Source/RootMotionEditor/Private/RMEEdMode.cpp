@@ -22,7 +22,7 @@ namespace RootMotionEditor
 	{
 		FEdMode::Tick(ViewportClient, DeltaTime);
 
-		FRootMotionEditorViewportClient* RootMotionEditorViewportClient = static_cast<FRootMotionEditorViewportClient*>(ViewportClient);
+		FRMEViewportClient* RootMotionEditorViewportClient = static_cast<FRMEViewportClient*>(ViewportClient);
 		if (RootMotionEditorViewportClient)
 		{
 			// ensure we redraw even if PIE is active

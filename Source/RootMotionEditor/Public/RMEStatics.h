@@ -1,4 +1,5 @@
 #pragma once
+#include "AnimPose.h"
 #include "DynamicMeshBuilder.h"
 
 
@@ -18,29 +19,81 @@ namespace RootMotionEditorStatics
 		return Result;
 	}
 
-	static FTransformCurve BakeRootBoneToCurves(UAnimSequenceBase* AnimSequenceBase, bool bIsAdditiveCurve = false, int32 SampleRate = 30)
+	static bool IsValidBoneName(const UAnimSequence* AnimSequence, const FName& BoneName)
 	{
-		if (!AnimSequenceBase)
+		if (AnimSequence != nullptr)
+		{
+			if (const USkeleton* Skeleton = AnimSequence->GetSkeleton())
+			{
+				const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+				if (RefSkeleton.GetNum() > 0)
+				{
+					return RefSkeleton.FindBoneIndex(BoneName) != INDEX_NONE;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	static FName GetRootBoneName(const UAnimSequence* AnimSequence)
+	{
+		if (AnimSequence != nullptr)
+		{
+			if (const USkeleton* Skeleton = AnimSequence->GetSkeleton())
+			{
+				const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+				if (RefSkeleton.GetNum() > 0)
+				{
+					return RefSkeleton.GetBoneName(0);
+				}
+			}
+		}
+
+		return NAME_None;
+	}
+
+	static FTransformCurve BakeRootBoneToCurves(UAnimSequence* AnimSequence, bool bIsAdditiveCurve = false, int32 SampleRate = 30, FName CustomExtractBone = NAME_None)
+	{
+		if (!AnimSequence)
 		{
 			UE_LOG(LogAnimation, Warning, TEXT("Invalid AnimSequence"));
 			return FTransformCurve();
 		}
 
-		if (!AnimSequenceBase->HasRootMotion())
+		const bool bIsCustomExtractBone = CustomExtractBone.IsValid();
+
+		if (!bIsCustomExtractBone && !AnimSequence->HasRootMotion())
 		{
 			UE_LOG(LogAnimation, Warning, TEXT("AnimSequence haven't root motion."));
 			return FTransformCurve();
 		}
 
 		const float SampleInterval = 1.f / static_cast<float>(SampleRate);
-		const float AnimLength = AnimSequenceBase->GetPlayLength();
+		const float AnimLength = AnimSequence->GetPlayLength();
 
 		FTransformCurve Result;
 		float Time = 0.0f;
 		FTransform LastRootMotion = FTransform::Identity;
 		while (Time < AnimLength)
 		{
-			const FTransform& RootMotionDelta = AnimSequenceBase->ExtractRootMotion(Time, SampleInterval, false);
+			FTransform RootMotionDelta;
+			if (!bIsCustomExtractBone)
+			{
+				RootMotionDelta = AnimSequence->ExtractRootMotion(Time, SampleInterval, false);
+			}
+			else
+			{
+				FAnimPoseEvaluationOptions EvaluationOptions = FAnimPoseEvaluationOptions();
+				FAnimPose AnimPose;
+				UAnimPoseExtensions::GetAnimPoseAtTime(AnimSequence, Time, EvaluationOptions, AnimPose);
+				const FTransform& LastBoneTransform = UAnimPoseExtensions::GetBonePose(AnimPose, CustomExtractBone, EAnimPoseSpaces::World);
+
+				UAnimPoseExtensions::GetAnimPoseAtTime(AnimSequence, Time + SampleInterval, EvaluationOptions, AnimPose);
+				const FTransform& CurrentBoneTransform = UAnimPoseExtensions::GetBonePose(AnimPose, CustomExtractBone, EAnimPoseSpaces::World);
+
+				RootMotionDelta = CurrentBoneTransform.GetRelativeTransform(LastBoneTransform);
+			}
 
 			Time = FMath::Clamp(Time + SampleInterval, 0.f, AnimLength);
 
@@ -51,7 +104,7 @@ namespace RootMotionEditorStatics
 		return Result;
 	}
 
-	static void OverrideAnimRootMotion(UAnimSequence* Animation, const FTransformCurve& NewRootMotion)
+	static void OverrideAnimBoneMotion(UAnimSequence* Animation, const FTransformCurve& NewRootMotion, FName BoneName = NAME_None)
 	{
 		if (!Animation)
 		{
@@ -80,7 +133,7 @@ namespace RootMotionEditorStatics
 			return;
 		}
 		
-		const FName RootBoneName = RefSkeleton.GetBoneName(0);
+		const FName RootBoneName = BoneName.IsValid() ? BoneName : RefSkeleton.GetBoneName(0);
 		
 		const int32 NumKeys = Model->GetNumberOfKeys();
 		if (NumKeys <= 1)
@@ -114,6 +167,8 @@ namespace RootMotionEditorStatics
 		Controller.UpdateBoneTrackKeys(RootBoneName, KeyRangeToSet, NewRootTranslations, NewRootQuats, NewRootScales, bShouldTransact);
 		
 		Controller.CloseBracket(bShouldTransact);
+
+		Animation->RefreshCacheData();
 	}
 
 	

@@ -13,7 +13,7 @@ const FName SRMEPreview::TabName = FName(TEXT("RootMotionEditorPreviewTab"));
 
 void SRMEPreview::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager, TSharedRef<FRMEContext> Context)
 {
-	FRootMotionEditorPreviewRequiredArgs RequiredArgs = Context->MakePreviewRequiredArgs();
+	FRMEPreviewRequiredArgs RequiredArgs = Context->MakePreviewRequiredArgs();
 	
 	TabManager->RegisterTabSpawner(
 			TabName,
@@ -56,7 +56,7 @@ void SRMEPreview::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager, 
 		.SetTooltipText(LOCTEXT("PreviewTooltipText", "Open the root motion edited preview tab."));
 }
 
-void SRMEPreview::Construct(const FArguments& InArgs, const FRootMotionEditorPreviewRequiredArgs& InRequiredArgs)
+void SRMEPreview::Construct(const FArguments& InArgs, const FRMEPreviewRequiredArgs& InRequiredArgs)
 {
 	SliderColor = InArgs._SliderColor;
 	SliderScrubTime = InArgs._SliderScrubTime;

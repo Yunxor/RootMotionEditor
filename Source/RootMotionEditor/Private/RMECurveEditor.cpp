@@ -4,10 +4,10 @@
 #include "RMEStatics.h"
 #include "SCurveEditorPanel.h"
 #include "SRMEAssetsSelector.h"
-#include "SRMECurveSelector.h"
 #include "Curves/CurveVector.h"
 #include "RMEContext.h"
 #include "RMETypes.h"
+#include "Tree/CurveEditorTreeFilter.h"
 #include "Tree/SCurveEditorTree.h"
 #include "Tree/SCurveEditorTreeFilterStatusBar.h"
 #include "Tree/SCurveEditorTreePin.h"
@@ -68,17 +68,46 @@ void FRMECurveEditorTreeItem::CreateCurveModels(TArray<TUniquePtr<FCurveModel>>&
 	OutCurveModels.Add(MoveTemp(NewCurve));
 }
 
+bool FRMECurveEditorTreeItem::PassesFilter(const FCurveEditorTreeFilter* InFilter) const
+{
+	if (InFilter->GetType() == ECurveEditorTreeFilterType::Text)
+	{
+		FString DisplayNameAsString = CurveName.ToString();
+
+		const FCurveEditorTreeTextFilter* Filter = static_cast<const FCurveEditorTreeTextFilter*>(InFilter);
+		for (const FCurveEditorTreeTextFilterTerm& Term : Filter->GetTerms())
+		{
+			if (!Term.Match(DisplayNameAsString).IsTotalMatch())
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+	
+}
+
 
 /**
  *	FRMECurveEditor
  */
 
 const FName FRMECurveEditor::CurveEditorTabName(TEXT("RootMotionEditorCurveEditorTab"));
+const FName FRMECurveEditor::CurveEditorConfigTabName(TEXT("RootMotionCurveEditorConfigTab"));
 
 void FRMECurveEditor::Initialize()
 {
 	CurveEditor = MakeShared<FCurveEditor>();
 	SetupCurveEditor();
+}
+
+void FRMECurveEditor::OnDestroy()
+{
+	Config->RemoveFromRoot();
+	Config = nullptr;
 }
 
 void FRMECurveEditor::SetupCurveEditor()
@@ -92,7 +121,21 @@ void FRMECurveEditor::SetupCurveEditor()
 	TUniquePtr<ICurveEditorBounds> EditorBounds = MakeUnique<FStaticCurveEditorBounds>();
 	EditorBounds->SetInputBounds(-1.05, 1.05);
 	CurveEditor->SetBounds(MoveTemp(EditorBounds));
-	
+
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	{
+		FDetailsViewArgs ViewArgs;
+		{
+			ViewArgs.bHideSelectionTip = true;
+			ViewArgs.bAllowSearch = false;
+		}
+		ConfigWidget = PropertyModule.CreateDetailView(ViewArgs);
+
+		Config = NewObject<URMECurveEditorConfig>();
+		Config->AddToRoot();
+
+		ConfigWidget->SetObject(Config);
+	}
 }
 
 URMECurveContainer* FRMECurveEditor::GetCurveContainer() const
@@ -102,11 +145,6 @@ URMECurveContainer* FRMECurveEditor::GetCurveContainer() const
 		return EditedContext->GetCurveContainer();
 	}
 	return nullptr;
-}
-
-void FRMECurveEditor::CurveChanged(TWeakPtr<FRMECurveEditorTreeItem> TreeItemWeak)
-{
-	
 }
 
 void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager, TSharedRef<FRMEContext> Context)
@@ -144,8 +182,7 @@ void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManag
 				SNew(SCurveEditorTreeFilterStatusBar, CurveEditor)
 			]
 		];
-	
-	// CreateDefaultCurves();
+
 	
 	TabManager->RegisterTabSpawner(
 			CurveEditorTabName,
@@ -178,6 +215,30 @@ void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManag
 		)
 		.SetDisplayName(LOCTEXT("CurveEditorTabTitle", "Edited Root Motion Curve"))
 		.SetTooltipText(LOCTEXT("CurveEditorTooltipText", "Open the Edited Root Motion Curve tab."));
+}
+
+void FRMECurveEditor::RegisterConfigTabSpawner(const TSharedPtr<class FTabManager>& TabManager)
+{
+	TabManager->RegisterTabSpawner(
+			CurveEditorConfigTabName,
+			FOnSpawnTab::CreateLambda(
+				[this](const FSpawnTabArgs&)
+				{
+					return SNew(SDockTab)
+						.TabRole(ETabRole::PanelTab)
+						.Label(LOCTEXT("LabelTitle", "Curve Editor Settings"))
+						[
+							SNew(SScrollBox)
+							+SScrollBox::Slot()
+							[
+								ConfigWidget.ToSharedRef()
+							]
+						];
+				}
+			)
+		)
+		.SetDisplayName(LOCTEXT("TabTitle", "Curve Editor Settings"))
+		.SetTooltipText(LOCTEXT("TooltipText", "Open the Curve Editor Settings tab."));
 }
 
 TSharedRef<SWidget> FRMECurveEditor::CreateToolbar()
@@ -293,8 +354,8 @@ void FRMECurveEditor::AddNewCurveInternal(FVectorCurve& CurveData, UObject* Curv
 		// {
 		// 	CurveEditor->PinCurve(CurveModel);
 		// }
-		
-		NewItem->GetOrCreateCurves(CurveEditor.Get());
+		//
+		// NewItem->GetOrCreateCurves(CurveEditor.Get());
 	}
 }
 
@@ -358,14 +419,12 @@ bool FRMECurveEditor::HasExternalCurve() const
 void FRMECurveEditor::LoadExternalCurveData()
 {
 	TSharedPtr<SRMEAssetsSelector> Selector = RootMotionEditorStatics::GetTabWidget<SRMEAssetsSelector>(WeakTabManager.Pin().Get(), SRMEAssetsSelector::TabName);
-	if (Selector.IsValid() && Selector->HasAnyCurveAsset())
+	URMEAssetCollection* AssetCollection = Selector ? Selector->GetAssetCollection() : nullptr;
+	if (AssetCollection && AssetCollection->HasAnyCurveAsset())
 	{
 		ClearEditorAllCurves();
-		
 		URMECurveContainer* CurveDataPtr = GetCurveContainer();
-		
-		CurveDataPtr->PushCurveData(Selector->GetCurveAsset(ERMECurveType::Motion), Selector->GetCurveAsset(ERMECurveType::Rotation), Selector->GetCurveAsset(ERMECurveType::Scale));
-
+		CurveDataPtr->PushCurveData(AssetCollection->MotionCurve, AssetCollection->RotationCurve, AssetCollection->ScaleCurve);
 		AddNewCurve(CurveDataPtr);
 	}
 }
@@ -379,7 +438,8 @@ void FRMECurveEditor::SaveToExternalCurveData()
 	}
 	
 	TSharedPtr<SRMEAssetsSelector> Selector = RootMotionEditorStatics::GetTabWidget<SRMEAssetsSelector>(WeakTabManager.Pin().Get(), SRMEAssetsSelector::TabName);
-	if (!Selector.IsValid() || !Selector->HasAnyCurveAsset())
+	URMEAssetCollection* AssetCollection = Selector ? Selector->GetAssetCollection() : nullptr;
+	if (!AssetCollection || !AssetCollection->HasAnyCurveAsset())
 	{
 		return;
 	}
@@ -398,9 +458,9 @@ void FRMECurveEditor::SaveToExternalCurveData()
 
 	if (FTransformCurve* CurveData = CurveDataPtr->CurveData)
 	{
-		SaveCurve(Selector->GetCurveAsset(ERMECurveType::Motion), CurveData->TranslationCurve);
-		SaveCurve(Selector->GetCurveAsset(ERMECurveType::Rotation), CurveData->RotationCurve);
-		SaveCurve(Selector->GetCurveAsset(ERMECurveType::Scale), CurveData->ScaleCurve);
+		SaveCurve(AssetCollection->MotionCurve, CurveData->TranslationCurve);
+		SaveCurve(AssetCollection->RotationCurve, CurveData->RotationCurve);
+		SaveCurve(AssetCollection->ScaleCurve, CurveData->ScaleCurve);
 	}
 	
 	
@@ -421,10 +481,19 @@ void FRMECurveEditor::LoadExternalAnimData()
 {
 	TSharedPtr<SRMEAssetsSelector> Selector = RootMotionEditorStatics::GetTabWidget<SRMEAssetsSelector>(WeakTabManager.Pin().Get(), SRMEAssetsSelector::TabName);
 	UAnimSequence* AnimSequence = Selector ? Selector->GetSequence() : nullptr;
-
 	if (AnimSequence != nullptr)
 	{
-		if (!AnimSequence->HasRootMotion())
+		FName RootBoneName = RootMotionEditorStatics::GetRootBoneName(AnimSequence);
+		FName TargetBoneName = (Config && Config->LoadBoneName.IsValid()) ? Config->LoadBoneName : RootBoneName;
+		if (!TargetBoneName.IsValid())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok,  FText::Format(LOCTEXT("InvalidMotionData", "The AnimSequence not found valid root bone, please check this anim sequence({0})."), FText::FromString(GetNameSafe(AnimSequence))));
+			return;
+		}
+
+		const bool bIsCustomRootBone = TargetBoneName != RootBoneName && TargetBoneName.IsValid();
+		
+		if (!bIsCustomRootBone && !AnimSequence->HasRootMotion())
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("InvalidMotionData", "The AnimSequence haven't root motion, please check whether EnableRootMotion is enabled."));
 			return;
@@ -446,8 +515,11 @@ void FRMECurveEditor::LoadExternalAnimData()
 			ClearEditorAllCurves();
 
 			URMECurveContainer* CurveDataPtr = GetCurveContainer();
+
+			const bool bIsAdditiveCurve = Config ? Config->bIsAdditiveCurve : false;
+			const int32 SampleRate = Config ? Config->SampleRate : 30;
 			
-			CurveDataPtr->CopyCurveData(RootMotionEditorStatics::BakeRootBoneToCurves(AnimSequence));
+			CurveDataPtr->CopyCurveData(RootMotionEditorStatics::BakeRootBoneToCurves(AnimSequence, bIsAdditiveCurve, SampleRate, TargetBoneName));
 
 			AddNewCurve(CurveDataPtr);
 		}
@@ -478,7 +550,28 @@ void FRMECurveEditor::SaveToExternalAnimData()
 		return;
 	}
 
-	RootMotionEditorStatics::OverrideAnimRootMotion(AnimSequence, *CurveData);
+	const FName& SkelRootBoneName = RootMotionEditorStatics::GetRootBoneName(AnimSequence);
+
+	FName TargetRootBoneName = Config &&  Config->SaveBoneName.IsValid() ? Config->SaveBoneName : NAME_None;
+	if (TargetRootBoneName == NAME_None)
+	{
+		const EAppReturnType::Type SaveChoice = FMessageDialog::Open(EAppMsgType::YesNo,
+			LOCTEXT("AutoSaveAnimRootData", "You haven't specified the name of the root bone to be written, and we will automatically write the 1th bone for you. Are you sure ?"));
+		if (SaveChoice == EAppReturnType::No)
+		{
+			return;
+		}
+
+		TargetRootBoneName = SkelRootBoneName;
+	}
+	
+	if (!RootMotionEditorStatics::IsValidBoneName(AnimSequence, TargetRootBoneName))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("InvalidAnimData", "Save bone name ({0}) is invalid."), FText::FromString(TargetRootBoneName.ToString())));
+		return;
+	}
+
+	RootMotionEditorStatics::OverrideAnimBoneMotion(AnimSequence, *CurveData);
 }
 
 #pragma endregion Anim Asset

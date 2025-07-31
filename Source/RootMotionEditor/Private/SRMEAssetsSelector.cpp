@@ -3,12 +3,9 @@
 
 #include "SRMEAssetsSelector.h"
 
-#include "PropertyCustomizationHelpers.h"
 #include "RMEContext.h"
+#include "RMETypes.h"
 #include "RootMotionEditorModule.h"
-#include "SRMECurveSelector.h"
-#include "Curves/CurveVector.h"
-#include "ThumbnailRendering/ThumbnailManager.h"
 
 #define LOCTEXT_NAMESPACE "SRootMotionEditedAssetView"
 
@@ -36,81 +33,66 @@ void SRMEAssetsSelector::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabMa
 
 SRMEAssetsSelector::SRMEAssetsSelector()
 {
+	InitWidget();
 	
+	AssetCollection = NewObject<URMEAssetCollection>();
+	AssetCollection->AddToRoot();
 }
 
 SRMEAssetsSelector::~SRMEAssetsSelector()
 {
+	AssetCollection->RemoveFromRoot();
 }
 
 void SRMEAssetsSelector::Construct(const FArguments& InArgs)
 {
-	ChildSlot
-	[
-		SNew(SBorder)
-		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.VAlign(VAlign_Center)
-			.AutoHeight()
-			[
-				CreateAnimAssetWidget()
-			]
-			+SVerticalBox::Slot()
-			.VAlign(VAlign_Center)
-			.FillHeight(1.f)
-			[
-				SAssignNew(CurveSelector, SRMECurveSelector)
-			]
-		]
-	];
+	ChildSlot.AttachWidget(Widget.ToSharedRef());
+
+	if (!Widget.IsValid())
+	{
+		InitWidget();
+	}
+	
+	if (Widget.IsValid())
+	{
+		Widget->SetObject(AssetCollection);
+		Widget->OnFinishedChangingProperties().AddSP(this, &SRMEAssetsSelector::OnFinishedChangingProperties);
+	}
 }
 
-TSharedRef<SWidget> SRMEAssetsSelector::CreateAnimAssetWidget()
+void SRMEAssetsSelector::InitWidget()
 {
-	auto Widget = SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.AutoWidth()
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString("AnimSequence :"))
-		]
-		+SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.FillWidth(1.f)
-		[
-			SNew(SObjectPropertyEntryBox)
-			.AllowedClass(UAnimSequence::StaticClass())
-			.ThumbnailPool(UThumbnailManager::Get().GetSharedThumbnailPool())
-			.DisplayThumbnail(true)
-			.OnObjectChanged_Lambda([this](const FAssetData& AssetData)
-			{
-				TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
-				UAnimSequence* Seq = Cast<UAnimSequence>(AssetData.GetAsset());
-				SelectedSequence = Seq;
-				Context->SetAnimationAsset(Seq);
-			})
-			.ObjectPath_Lambda([]()
-			{
-				TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
-				UAnimSequence* AnimSeq = Context->GetAnimationAsset();
-				return AnimSeq ? AnimSeq->GetPathName() : "None";
-			})
-		];
-	
-	return Widget;
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	{
+		FDetailsViewArgs ViewArgs;
+		{
+			ViewArgs.bHideSelectionTip = true;
+			ViewArgs.bAllowSearch = false;
+		}
+		Widget = PropertyModule.CreateDetailView(ViewArgs);
+	}
 }
 
 bool SRMEAssetsSelector::HasAnyCurveAsset() const
 {
-	return CurveSelector.IsValid() ? CurveSelector->HasAnyCurveAsset() : false;
+	return AssetCollection ? AssetCollection->HasAnyCurveAsset() : false;
 }
 
-UCurveVector* SRMEAssetsSelector::GetCurveAsset(ERMECurveType CurveType) const
+UAnimSequence* SRMEAssetsSelector::GetSequence() const
 {
-	return CurveSelector.IsValid() ? CurveSelector->GetCurveAsset(CurveType) : nullptr;
+	return AssetCollection ? AssetCollection->AnimSequence : nullptr;
+}
+
+void SRMEAssetsSelector::OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent) const
+{
+	if (ChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(URMEAssetCollection, AnimSequence))
+	{
+		if (AssetCollection)
+		{
+			TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
+			Context->SetAnimationAsset(AssetCollection->AnimSequence);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

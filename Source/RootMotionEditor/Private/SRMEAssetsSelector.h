@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
-enum class ERMECurveType : uint8;
 /**
  * 
  */
@@ -24,16 +23,15 @@ public:
 	virtual ~SRMEAssetsSelector();
 
 	void Construct(const FArguments& InArgs);
+	void InitWidget();
 
-	TSharedRef<SWidget> CreateAnimAssetWidget();
-
+	class URMEAssetCollection* GetAssetCollection() const { return AssetCollection; }
 	bool HasAnyCurveAsset() const;
-	class UCurveVector* GetCurveAsset(ERMECurveType CurveType) const;
-	UAnimSequence* GetSequence() const { return SelectedSequence; }
+	UAnimSequence* GetSequence() const;
 
-	TSharedRef<class SRMECurveSelector> GetCurveSelector() const { return CurveSelector.ToSharedRef(); }
-
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent) const;
+	
 protected:
-	TSharedPtr<class SRMECurveSelector> CurveSelector = nullptr;
-	TObjectPtr<class UAnimSequence> SelectedSequence = nullptr;
+	TSharedPtr<IDetailsView> Widget;
+	TObjectPtr<class URMEAssetCollection> AssetCollection = nullptr;
 };

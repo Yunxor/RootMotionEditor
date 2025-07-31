@@ -14,9 +14,9 @@ class SRMEViewport;
 class FRMEPreviewScene;
 class FRMEViewModel;
 
-struct FRootMotionEditorPreviewRequiredArgs
+struct FRMEPreviewRequiredArgs
 {
-	FRootMotionEditorPreviewRequiredArgs(
+	FRMEPreviewRequiredArgs(
 		const TSharedRef<FRMEViewModel>& InViewModel,
 		const TSharedRef<FRMEPreviewScene>& InPreviewScene)
 		: ViewModel(InViewModel)
@@ -30,14 +30,14 @@ struct FRootMotionEditorPreviewRequiredArgs
 };
 
 
-class FRootMotionEditorViewportClient : public FEditorViewportClient
+class FRMEViewportClient : public FEditorViewportClient
 {
 public:
-	FRootMotionEditorViewportClient(
+	FRMEViewportClient(
 		const TSharedRef<FRMEPreviewScene>& InPreviewScene,
 		const TSharedRef<SRMEViewport>& InViewport,
 		const TSharedRef<FRMEViewModel>& InViewModel);
-	virtual ~FRootMotionEditorViewportClient() {}
+	virtual ~FRMEViewportClient() {}
 
 	// ~FEditorViewportClient interface
 	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
@@ -60,7 +60,7 @@ public:
 	SLATE_END_ARGS();
 
 
-	void Construct(const FArguments& InArgs, const FRootMotionEditorPreviewRequiredArgs& InRequiredArgs);
+	void Construct(const FArguments& InArgs, const FRMEPreviewRequiredArgs& InRequiredArgs);
 	virtual ~SRMEViewport() {}
 
 
@@ -88,7 +88,7 @@ protected:
 
 
 	/** Viewport client */
-	TSharedPtr<FRootMotionEditorViewportClient> ViewportClient;
+	TSharedPtr<FRMEViewportClient> ViewportClient;
 
 	/** The viewport toolbar */
 	TSharedPtr<SMEViewportToolBar> ViewportToolbar;

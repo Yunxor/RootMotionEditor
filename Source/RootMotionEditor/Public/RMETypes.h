@@ -72,3 +72,38 @@ private:
 	bool bIsNew = false;
 	bool bIsAddToRoot = false;
 };
+
+UCLASS(BlueprintType)
+class URMECurveEditorConfig : public UObject
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName LoadBoneName = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName SaveBoneName = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsAdditiveCurve = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 SampleRate = 30;
+};
+
+UCLASS()
+class URMEAssetCollection : public UObject
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
+	TObjectPtr<class UAnimSequence> AnimSequence = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve")
+	TObjectPtr<class UCurveVector> MotionCurve = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve")
+	TObjectPtr<class UCurveVector> RotationCurve = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve")
+	TObjectPtr<class UCurveVector> ScaleCurve = nullptr;
+
+	bool HasAnyCurveAsset() const
+	{
+		return MotionCurve || RotationCurve || ScaleCurve;
+	}
+};

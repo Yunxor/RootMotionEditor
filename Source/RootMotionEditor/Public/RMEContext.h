@@ -12,7 +12,7 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	virtual FString GetReferencerName() const override { return TEXT("FRootMotionEditedContext"); }
 
-	struct FRootMotionEditorPreviewRequiredArgs MakePreviewRequiredArgs();
+	struct FRMEPreviewRequiredArgs MakePreviewRequiredArgs();
 
 	void InitTab(TSharedPtr<class FTabManager> TabManager);
 

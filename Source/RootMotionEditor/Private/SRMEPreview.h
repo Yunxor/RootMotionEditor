@@ -36,7 +36,7 @@ public:
 	static void RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager, TSharedRef<class FRMEContext> Context);
 	
 
-	void Construct(const FArguments& InArgs, const FRootMotionEditorPreviewRequiredArgs& InRequiredArgs);
+	void Construct(const FArguments& InArgs, const FRMEPreviewRequiredArgs& InRequiredArgs);
 
 protected:
 	TAttribute<FLinearColor> SliderColor;

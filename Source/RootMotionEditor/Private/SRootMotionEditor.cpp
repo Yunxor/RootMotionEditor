@@ -87,6 +87,11 @@ SRootMotionEditor::SRootMotionEditor()
 
 SRootMotionEditor::~SRootMotionEditor()
 {
+	if (CurveEditor.IsValid())
+	{
+		CurveEditor->OnDestroy();
+	}
+	CurveEditor = nullptr;
 }
 
 void SRootMotionEditor::Construct(const FArguments& InArgs)
@@ -96,7 +101,7 @@ void SRootMotionEditor::Construct(const FArguments& InArgs)
 	TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
 	Context->InitTab(TabManager);
 	
-	FRootMotionEditorPreviewRequiredArgs RequiredArgs = Context->MakePreviewRequiredArgs();
+	FRMEPreviewRequiredArgs RequiredArgs = Context->MakePreviewRequiredArgs();
 
 	// Register DockTab.
 	SRMEAssetsSelector::RegisterTabSpawner(TabManager);
@@ -109,11 +114,12 @@ void SRootMotionEditor::Construct(const FArguments& InArgs)
 		CurveEditor->Initialize();
 	}
 	CurveEditor->RegisterTabSpawner(TabManager, Context);
+	CurveEditor->RegisterConfigTabSpawner(TabManager);
 	
 
 	// Default Layout.
 	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout =
-		FTabManager::NewLayout("RootMotionEditor_StandaloneLayout_v0.3")
+		FTabManager::NewLayout("RootMotionEditor_StandaloneLayout_v0.7")
 			->AddArea
 			(
 				// Main application area
@@ -121,10 +127,23 @@ void SRootMotionEditor::Construct(const FArguments& InArgs)
 				->SetOrientation(Orient_Horizontal)
 				->Split
 				(
-				FTabManager::NewStack()
+					FTabManager::NewSplitter()
+					->SetOrientation(Orient_Vertical)
 					->SetSizeCoefficient(0.2f)
-					->AddTab(SRMEAssetsSelector::TabName, ETabState::OpenedTab)
-					->SetHideTabWell(false)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.6f)
+						->AddTab(SRMEAssetsSelector::TabName, ETabState::OpenedTab)
+						->SetHideTabWell(false)
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.4f)
+						->AddTab(FRMECurveEditor::CurveEditorConfigTabName, ETabState::OpenedTab)
+						->SetHideTabWell(false)
+					)
 				)
 				->Split
 				(
@@ -136,14 +155,14 @@ void SRootMotionEditor::Construct(const FArguments& InArgs)
 						FTabManager::NewStack()
 						->SetSizeCoefficient(0.6f)
 						->AddTab(SRMEPreview::TabName, ETabState::OpenedTab)
-						->SetHideTabWell(false)
+						->SetHideTabWell(true)
 					 )
 					 ->Split
 					 (
 						FTabManager::NewStack()
 						->SetSizeCoefficient(0.4f)
 						->AddTab(FRMECurveEditor::CurveEditorTabName, ETabState::OpenedTab)
-						->SetHideTabWell(false)
+						->SetHideTabWell(true)
 					 )
 				)
 			);

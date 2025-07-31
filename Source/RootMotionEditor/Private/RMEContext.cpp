@@ -31,9 +31,9 @@ void FRMEContext::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(CurveDataPtr);
 }
 
-FRootMotionEditorPreviewRequiredArgs FRMEContext::MakePreviewRequiredArgs()
+FRMEPreviewRequiredArgs FRMEContext::MakePreviewRequiredArgs()
 {
-	return FRootMotionEditorPreviewRequiredArgs(
+	return FRMEPreviewRequiredArgs(
 		ViewModel.ToSharedRef(), PreviewScene.ToSharedRef());
 }
 

@@ -25,7 +25,7 @@ public class RootMotionEditor : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "Engine",
+				"Core", "Engine", "AnimationBlueprintLibrary",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

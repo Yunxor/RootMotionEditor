@@ -27,7 +27,7 @@ FText ConcatenateLine(const FText& InText, const FText& InNewLine)
 }
 
 
-FRootMotionEditorViewportClient::FRootMotionEditorViewportClient(
+FRMEViewportClient::FRMEViewportClient(
 	const TSharedRef<FRMEPreviewScene>& InPreviewScene,
 	const TSharedRef<SRMEViewport>& InViewport,
 	const TSharedRef<FRMEViewModel>& InViewModel)
@@ -47,7 +47,7 @@ FRootMotionEditorViewportClient::FRootMotionEditorViewportClient(
 
 
 
-void FRootMotionEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
+void FRMEViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	FRMEViewModel* ViewModePtr = ViewModel.Pin().Get();
 	UDebugSkelMeshComponent* PreviewComponent = ViewModePtr ? ViewModePtr->GetDebugSkelMeshComponent() : nullptr;
@@ -63,19 +63,19 @@ void FRootMotionEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDra
 	DrawRootMotionData(PreviewComponent, PDI);
 }
 
-void FRootMotionEditorViewportClient::TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge)
+void FRMEViewportClient::TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge)
 {
 	
 	ModeTools->StartTracking(this, Viewport);
 }
 
-void FRootMotionEditorViewportClient::TrackingStopped()
+void FRMEViewportClient::TrackingStopped()
 {
 	ModeTools->EndTracking(this, Viewport);
 	Invalidate();
 }
 
-bool FRootMotionEditorViewportClient::CanDrawPreviewComponent(UDebugSkelMeshComponent* MeshComponent)
+bool FRMEViewportClient::CanDrawPreviewComponent(UDebugSkelMeshComponent* MeshComponent)
 {
 	if (!MeshComponent || !MeshComponent->GetSkinnedAsset() || MeshComponent->GetSkinnedAsset()->IsCompiling())
 	{
@@ -85,7 +85,7 @@ bool FRootMotionEditorViewportClient::CanDrawPreviewComponent(UDebugSkelMeshComp
 	return true;
 }
 
-void FRootMotionEditorViewportClient::DrawRootMotionData(UDebugSkelMeshComponent* MeshComponent, FPrimitiveDrawInterface* PDI) const
+void FRMEViewportClient::DrawRootMotionData(UDebugSkelMeshComponent* MeshComponent, FPrimitiveDrawInterface* PDI) const
 {
 	constexpr float DepthBias = 2.0f;
 	constexpr bool bScreenSpace = true;
@@ -180,7 +180,7 @@ void FRootMotionEditorViewportClient::DrawRootMotionData(UDebugSkelMeshComponent
  *	SRMEViewport
  */
 
-void SRMEViewport::Construct(const FArguments& InArgs, const FRootMotionEditorPreviewRequiredArgs& InRequiredArgs)
+void SRMEViewport::Construct(const FArguments& InArgs, const FRMEPreviewRequiredArgs& InRequiredArgs)
 {
 	ViewModel = InRequiredArgs.ViewModel;
 	PreviewScenePtr = InRequiredArgs.PreviewScene;
@@ -325,7 +325,7 @@ void SRMEViewport::BindCommands()
 
 TSharedRef<FEditorViewportClient> SRMEViewport::MakeEditorViewportClient()
 {
-	ViewportClient = MakeShared<FRootMotionEditorViewportClient>(
+	ViewportClient = MakeShared<FRMEViewportClient>(
 			PreviewScenePtr.Pin().ToSharedRef(),
 			SharedThis(this),
 			ViewModel.Pin().ToSharedRef()
