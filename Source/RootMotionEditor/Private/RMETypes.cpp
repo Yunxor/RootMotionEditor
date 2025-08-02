@@ -132,3 +132,56 @@ FName URMECurveContainer::GetFullCurveName(FString InName, int32 Index)
 
 	return FName(InName);
 }
+
+
+#if WITH_EDITOR
+bool URMECurveEditorConfig::CanEditChange(const FEditPropertyChain& PropertyChain) const
+{
+	const bool ParentVal = UObject::CanEditChange(PropertyChain);
+
+	const FProperty* Property = PropertyChain.GetActiveNode() ? PropertyChain.GetActiveNode()->GetValue() : nullptr;
+	if (Property)
+	{
+		const FName PropertyName = Property->GetFName();
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(URMECurveEditorConfig, EvaluationOptions)
+			|| PropertyName == GET_MEMBER_NAME_CHECKED(URMECurveEditorConfig, Space)
+			)
+		{
+			return ParentVal && !CustomLoadBoneName.IsNone();
+		}
+	}
+
+	return ParentVal;
+}
+
+bool URMEAssetCollection::HasAnyCurveAsset() const
+{
+	return MotionCurve || RotationCurve || ScaleCurve;
+}
+
+bool URMEAssetCollection::HasRepeatedCurve() const
+{
+	TSet<UCurveVector*> Curves;
+	bool bHasRepeated = false;
+	auto CheckFunction = [&Curves, &bHasRepeated](UCurveVector* InCurve)
+	{
+		if (InCurve != nullptr)
+		{
+			if (Curves.Contains(InCurve))
+			{
+				bHasRepeated = true;
+			}
+			else
+			{
+				Curves.Add(InCurve);
+			}
+		}
+	};
+
+	CheckFunction(MotionCurve);
+	CheckFunction(RotationCurve);
+	CheckFunction(ScaleCurve);
+
+	return bHasRepeated;
+}
+#endif

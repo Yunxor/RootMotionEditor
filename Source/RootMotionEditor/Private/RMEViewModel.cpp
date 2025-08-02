@@ -35,7 +35,7 @@ bool FRootMotionEditorPreviewActor::SetupPreviewActor(UWorld* World, UAnimSequen
 
 		UDebugSkelMeshComponent* Mesh = NewObject<UDebugSkelMeshComponent>(ActorPtr.Get());
 		Mesh->RegisterComponentWithWorld(World);
-		Mesh->SetVisualizeRootMotionMode(EVisualizeRootMotionMode::TrajectoryAndOrientation);
+		Mesh->SetVisualizeRootMotionMode(EVisualizeRootMotionMode::Trajectory);
 
 		AnimInstance = NewObject<UAnimPreviewInstance>(Mesh);
 		Mesh->PreviewInstance = AnimInstance;
@@ -186,6 +186,12 @@ void FRMEViewModel::SetSelectedAnimation(UAnimSequence* InAnimation)
 {
 	MaxPreviewPlayLength = InAnimation ? InAnimation->GetPlayLength() : 0.f;
 	PreviewActor.SetupPreviewActor(GetWorld(), InAnimation);
+
+	// auto change view mode.
+	if (RootMotionViewMode == ERootMotionViewMode::None)
+	{
+		RootMotionViewMode = ERootMotionViewMode::AnimAsset;
+	}
 }
 
 

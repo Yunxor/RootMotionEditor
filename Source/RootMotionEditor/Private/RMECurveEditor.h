@@ -38,6 +38,11 @@ public:
 
 	void RegisterTabSpawner(const TSharedPtr<class FTabManager>& TabManager, TSharedRef<class FRMEContext> Context);
 	void RegisterConfigTabSpawner(const TSharedPtr<class FTabManager>& TabManager);
+
+	FSimpleMulticastDelegate OnLoadCurveDataCompleted;
+	
+	static FText GetBoneMessage(bool bIsCustomBone);
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent);
 	
 protected:
 	void AddNewCurve(class URMECurveContainer* Container);
@@ -54,6 +59,7 @@ protected:
 	bool HasExternalAnim() const;
 	void LoadExternalAnimData();
 	void SaveToExternalAnimData();
+	
 	
 private:
 	TSharedRef<SWidget> CreateToolbar();
@@ -82,4 +88,5 @@ private:
 	TObjectPtr<class URMECurveEditorConfig> Config = nullptr;
 
 	bool bHasCurveEdited = false;
+	bool bIsSetCustomBone = false;
 };

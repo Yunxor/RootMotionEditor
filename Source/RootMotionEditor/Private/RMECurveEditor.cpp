@@ -7,6 +7,8 @@
 #include "Curves/CurveVector.h"
 #include "RMEContext.h"
 #include "RMETypes.h"
+#include "RMEViewModel.h"
+#include "SWarningOrErrorBox.h"
 #include "Tree/CurveEditorTreeFilter.h"
 #include "Tree/SCurveEditorTree.h"
 #include "Tree/SCurveEditorTreeFilterStatusBar.h"
@@ -135,6 +137,7 @@ void FRMECurveEditor::SetupCurveEditor()
 		Config->AddToRoot();
 
 		ConfigWidget->SetObject(Config);
+		ConfigWidget->OnFinishedChangingProperties().AddSP(this, &FRMECurveEditor::OnFinishedChangingProperties);
 	}
 }
 
@@ -183,6 +186,17 @@ void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManag
 			]
 		];
 
+	OnLoadCurveDataCompleted.AddLambda([WeakContext = Context.ToWeakPtr()]()
+	{
+		if (FRMEContext* ContextPtr = WeakContext.Pin().Get())
+		{
+			if (FRMEViewModel* ViewModel = ContextPtr->GetViewModel())
+			{
+				ViewModel->SetRootMotionViewMode(ERootMotionViewMode::CurveEditor);
+			}
+		}
+	});
+
 	
 	TabManager->RegisterTabSpawner(
 			CurveEditorTabName,
@@ -230,6 +244,15 @@ void FRMECurveEditor::RegisterConfigTabSpawner(const TSharedPtr<class FTabManage
 						[
 							SNew(SScrollBox)
 							+SScrollBox::Slot()
+							.Padding(5.f)
+							[
+								SNew(SWarningOrErrorBox)
+								.Message_Lambda([this]()
+								{
+									return GetBoneMessage(this->bIsSetCustomBone);
+								})
+							]
+							+SScrollBox::Slot()
 							[
 								ConfigWidget.ToSharedRef()
 							]
@@ -239,6 +262,26 @@ void FRMECurveEditor::RegisterConfigTabSpawner(const TSharedPtr<class FTabManage
 		)
 		.SetDisplayName(LOCTEXT("TabTitle", "Curve Editor Settings"))
 		.SetTooltipText(LOCTEXT("TooltipText", "Open the Curve Editor Settings tab."));
+}
+
+FText FRMECurveEditor::GetBoneMessage(bool bIsCustomBone)
+{
+	if (bIsCustomBone)
+	{
+		return LOCTEXT("CurveEditorSettingsNotes_Custom",
+				"It will use the 'GetAnimPose' function to extract bone data.");
+	}
+
+	return LOCTEXT("CurveEditorSettingsNotes_Default",
+				"It will use the 'ExtractRootMotion' function to extract bone data, that based on the first bone of the specific animation asset.");
+}
+
+void FRMECurveEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent)
+{
+	if (Config)
+	{
+		bIsSetCustomBone = !Config->CustomLoadBoneName.IsNone() || !Config->CustomSaveBoneName.IsNone();
+	}
 }
 
 TSharedRef<SWidget> FRMECurveEditor::CreateToolbar()
@@ -266,14 +309,14 @@ TSharedRef<SWidget> FRMECurveEditor::CreateToolbar()
 			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.X")
 		);
         
-		ToolbarBuilder.AddToolBarButton(
-		FUIAction(FExecuteAction::CreateSP(this, &FRMECurveEditor::SaveCurveData),
-			FCanExecuteAction::CreateSP(this, &FRMECurveEditor::CanEditCurve)),
-			NAME_None,
-			LOCTEXT("SaveCurves", "Save"),
-			LOCTEXT("SaveCurvesTooltip", "Save curve data to file"),
-			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Save")
-		);
+		// ToolbarBuilder.AddToolBarButton(
+		// FUIAction(FExecuteAction::CreateSP(this, &FRMECurveEditor::SaveCurveData),
+		// 	FCanExecuteAction::CreateSP(this, &FRMECurveEditor::CanEditCurve)),
+		// 	NAME_None,
+		// 	LOCTEXT("SaveCurves", "Save"),
+		// 	LOCTEXT("SaveCurvesTooltip", "Save curve data to file"),
+		// 	FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Save")
+		// );
 
 		ToolbarBuilder.AddSeparator();
 
@@ -426,6 +469,8 @@ void FRMECurveEditor::LoadExternalCurveData()
 		URMECurveContainer* CurveDataPtr = GetCurveContainer();
 		CurveDataPtr->PushCurveData(AssetCollection->MotionCurve, AssetCollection->RotationCurve, AssetCollection->ScaleCurve);
 		AddNewCurve(CurveDataPtr);
+
+		OnLoadCurveDataCompleted.Broadcast();
 	}
 }
 
@@ -483,15 +528,7 @@ void FRMECurveEditor::LoadExternalAnimData()
 	UAnimSequence* AnimSequence = Selector ? Selector->GetSequence() : nullptr;
 	if (AnimSequence != nullptr)
 	{
-		FName RootBoneName = RootMotionEditorStatics::GetRootBoneName(AnimSequence);
-		FName TargetBoneName = (Config && Config->LoadBoneName.IsValid()) ? Config->LoadBoneName : RootBoneName;
-		if (!TargetBoneName.IsValid())
-		{
-			FMessageDialog::Open(EAppMsgType::Ok,  FText::Format(LOCTEXT("InvalidMotionData", "The AnimSequence not found valid root bone, please check this anim sequence({0})."), FText::FromString(GetNameSafe(AnimSequence))));
-			return;
-		}
-
-		const bool bIsCustomRootBone = TargetBoneName != RootBoneName && TargetBoneName.IsValid();
+		const bool bIsCustomRootBone = Config && !Config->CustomLoadBoneName.IsNone();
 		
 		if (!bIsCustomRootBone && !AnimSequence->HasRootMotion())
 		{
@@ -499,8 +536,23 @@ void FRMECurveEditor::LoadExternalAnimData()
 			return;
 		}
 
+		FName TargetBoneName = NAME_None;
+		FAnimPoseEvaluationOptions EvaluationOptions = FAnimPoseEvaluationOptions();
+		EAnimPoseSpaces Space = EAnimPoseSpaces::World;
+		// check bone.
+		if (bIsCustomRootBone)
+		{
+			TargetBoneName = Config->CustomLoadBoneName;
+			EvaluationOptions = Config->EvaluationOptions;
+			Space = Config->Space;
+			if (!RootMotionEditorStatics::IsValidBoneName(AnimSequence, TargetBoneName))
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("InvalidAnimData", "Load bone name ({0}) is invalid from the anim({1})."), FText::FromString(TargetBoneName.ToString()), FText::FromString(GetNameSafe(AnimSequence))));
+				return;
+			}
+		}
+
 		bool bWriteData = true;
-		
 		if (bHasCurveEdited)
 		{
 			const EAppReturnType::Type Choice = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("HasEditedCurve", "You have already edited the curve. Are you sure you want to discard it and write it into the animation data ?"));
@@ -514,14 +566,15 @@ void FRMECurveEditor::LoadExternalAnimData()
 		{
 			ClearEditorAllCurves();
 
-			URMECurveContainer* CurveDataPtr = GetCurveContainer();
-
 			const bool bIsAdditiveCurve = Config ? Config->bIsAdditiveCurve : false;
 			const int32 SampleRate = Config ? Config->SampleRate : 30;
-			
-			CurveDataPtr->CopyCurveData(RootMotionEditorStatics::BakeRootBoneToCurves(AnimSequence, bIsAdditiveCurve, SampleRate, TargetBoneName));
+			const int32 ExtractChannel = Config ? Config->ExtractChannels : static_cast<int32>(ERMEBoneExtractChannelType::All);
 
+			URMECurveContainer* CurveDataPtr = GetCurveContainer();
+			CurveDataPtr->CopyCurveData(RootMotionEditorStatics::BakeRootBoneToCurves(AnimSequence, bIsAdditiveCurve, SampleRate, ExtractChannel,  TargetBoneName, EvaluationOptions, Space));
 			AddNewCurve(CurveDataPtr);
+
+			OnLoadCurveDataCompleted.Broadcast();
 		}
 	}
 }
@@ -550,28 +603,24 @@ void FRMECurveEditor::SaveToExternalAnimData()
 		return;
 	}
 
-	const FName& SkelRootBoneName = RootMotionEditorStatics::GetRootBoneName(AnimSequence);
+	const bool bIsCustomSave = Config && !Config->CustomSaveBoneName.IsNone();
+	FName CustomBoneToSave = NAME_None;
 
-	FName TargetRootBoneName = Config &&  Config->SaveBoneName.IsValid() ? Config->SaveBoneName : NAME_None;
-	if (TargetRootBoneName == NAME_None)
+	if (bIsCustomSave)
 	{
-		const EAppReturnType::Type SaveChoice = FMessageDialog::Open(EAppMsgType::YesNo,
-			LOCTEXT("AutoSaveAnimRootData", "You haven't specified the name of the root bone to be written, and we will automatically write the 1th bone for you. Are you sure ?"));
-		if (SaveChoice == EAppReturnType::No)
+		CustomBoneToSave = Config->CustomSaveBoneName;
+
+		// check bone.
+		if (!RootMotionEditorStatics::IsValidBoneName(AnimSequence, CustomBoneToSave))
 		{
+			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("InvalidAnimData", "Save bone name ({0}) is invalid.from the anim({1})."), FText::FromString(CustomBoneToSave.ToString()), FText::FromString(GetNameSafe(AnimSequence))));
 			return;
 		}
-
-		TargetRootBoneName = SkelRootBoneName;
-	}
-	
-	if (!RootMotionEditorStatics::IsValidBoneName(AnimSequence, TargetRootBoneName))
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("InvalidAnimData", "Save bone name ({0}) is invalid."), FText::FromString(TargetRootBoneName.ToString())));
-		return;
 	}
 
-	RootMotionEditorStatics::OverrideAnimBoneMotion(AnimSequence, *CurveData);
+	RootMotionEditorStatics::OverrideAnimBoneMotion(AnimSequence, *CurveData, CustomBoneToSave);
+
+	AnimSequence->MarkPackageDirty();
 }
 
 #pragma endregion Anim Asset

@@ -6,6 +6,7 @@
 #include "RMEContext.h"
 #include "RMETypes.h"
 #include "RootMotionEditorModule.h"
+#include "SWarningOrErrorBox.h"
 
 #define LOCTEXT_NAMESPACE "SRootMotionEditedAssetView"
 
@@ -46,7 +47,22 @@ SRMEAssetsSelector::~SRMEAssetsSelector()
 
 void SRMEAssetsSelector::Construct(const FArguments& InArgs)
 {
-	ChildSlot.AttachWidget(Widget.ToSharedRef());
+	ChildSlot
+	[
+		SNew(SScrollBox)
+		+SScrollBox::Slot()
+		.Padding(5.f)
+		[
+			SNew(SWarningOrErrorBox)
+			.Message(LOCTEXT("AssetsSelectorWarnings",
+				"You have already configured the same curve asset in multiple curve parameters, which will result in the data being overwritten when writing it."))
+			.Visibility_Lambda([this](){ return this->bHasRepeatedCurve ? EVisibility::Visible : EVisibility::Hidden; })
+		]
+		+SScrollBox::Slot()
+		[
+			Widget.ToSharedRef()
+		]
+	];
 
 	if (!Widget.IsValid())
 	{
@@ -83,7 +99,15 @@ UAnimSequence* SRMEAssetsSelector::GetSequence() const
 	return AssetCollection ? AssetCollection->AnimSequence : nullptr;
 }
 
-void SRMEAssetsSelector::OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent) const
+void SRMEAssetsSelector::CheckAssetValidation()
+{
+	if (AssetCollection)
+	{
+		bHasRepeatedCurve = AssetCollection->HasRepeatedCurve();
+	}
+}
+
+void SRMEAssetsSelector::OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent)
 {
 	if (ChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(URMEAssetCollection, AnimSequence))
 	{
@@ -93,6 +117,8 @@ void SRMEAssetsSelector::OnFinishedChangingProperties(const FPropertyChangedEven
 			Context->SetAnimationAsset(AssetCollection->AnimSequence);
 		}
 	}
+
+	CheckAssetValidation();
 }
 
 #undef LOCTEXT_NAMESPACE

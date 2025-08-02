@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AnimPose.h"
 #include "RMETypes.generated.h"
 
 namespace ERootMotionViewMode
@@ -33,6 +34,21 @@ namespace ERootMotionViewMode
 		return DisplayName;
 	}
 }
+
+UENUM(DisplayName = "Bone Extract Channel Type", meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
+enum class ERMEBoneExtractChannelType : uint32
+{
+	None = 0 UMETA(Hidden),
+	Translation = 1 << 0,
+	Rotation	= 1	<< 1,
+	Scale		= 1	<< 2,
+
+	All = Translation | Rotation | Scale,
+};
+
+ENUM_CLASS_FLAGS(ERMEBoneExtractChannelType);
+constexpr bool EnumHasAnyFlags(int32 Flags, ERMEBoneExtractChannelType Contains) { return (Flags & static_cast<int32>(Contains)) != 0; }
+
 
 UCLASS()
 class URMECurveContainer : public UObject
@@ -78,14 +94,27 @@ class URMECurveEditorConfig : public UObject
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName LoadBoneName = NAME_None;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName SaveBoneName = NAME_None;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsAdditiveCurve = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load")
+	FName CustomLoadBoneName = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load", meta = (Bitmask, BitmaskEnum = "/Script/RootMotionEditor.ERMEBoneExtractChannelType"))
+	int32 ExtractChannels = int32(ERMEBoneExtractChannelType::Translation);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load")
 	int32 SampleRate = 30;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load", meta = (ToolTip = "If it is true, it will make every frame of the curve is motion delta."))
+	bool bIsAdditiveCurve = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load")
+	FAnimPoseEvaluationOptions EvaluationOptions = FAnimPoseEvaluationOptions();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load")
+	EAnimPoseSpaces Space = EAnimPoseSpaces::World;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
+	FName CustomSaveBoneName = NAME_None;
+
+
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FEditPropertyChain& PropertyChain) const override;
+#endif
 };
 
 UCLASS()
@@ -95,15 +124,14 @@ class URMEAssetCollection : public UObject
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
 	TObjectPtr<class UAnimSequence> AnimSequence = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve", meta = (AllowedClasses = "/Script/Engine.CurveBase", DisallowedClasses = "/Script/Engine.CurveLinearColor, /Script/Engine.CurveFloat"))
 	TObjectPtr<class UCurveVector> MotionCurve = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve", meta = (AllowedClasses = "/Script/Engine.CurveBase", DisallowedClasses = "/Script/Engine.CurveLinearColor, /Script/Engine.CurveFloat"))
 	TObjectPtr<class UCurveVector> RotationCurve = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve", meta = (AllowedClasses = "/Script/Engine.CurveBase", DisallowedClasses = "/Script/Engine.CurveLinearColor, /Script/Engine.CurveFloat"))
 	TObjectPtr<class UCurveVector> ScaleCurve = nullptr;
+	
+	bool HasAnyCurveAsset() const;
 
-	bool HasAnyCurveAsset() const
-	{
-		return MotionCurve || RotationCurve || ScaleCurve;
-	}
+	bool HasRepeatedCurve() const;
 };

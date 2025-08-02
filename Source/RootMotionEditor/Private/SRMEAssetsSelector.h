@@ -29,9 +29,12 @@ public:
 	bool HasAnyCurveAsset() const;
 	UAnimSequence* GetSequence() const;
 
-	void OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent) const;
+	void CheckAssetValidation();
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent);
 	
 protected:
 	TSharedPtr<IDetailsView> Widget;
 	TObjectPtr<class URMEAssetCollection> AssetCollection = nullptr;
+
+	bool bHasRepeatedCurve = false;
 };
