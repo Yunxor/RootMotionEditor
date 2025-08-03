@@ -438,6 +438,11 @@ void FRMECurveEditor::ClearEditorAllCurves()
 	CurveEditor->RemoveAllTreeItems();
 	CurveEditor->RemoveAllCurves();
 
+	if (URMECurveContainer* CurveDataPtr = GetCurveContainer())
+	{
+		CurveDataPtr->ClearAllKeys();
+	}
+
 	bHasCurveEdited = false;
 }
 

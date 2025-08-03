@@ -33,7 +33,7 @@ void URMECurveContainer::BeginDestroy()
 {
 	if (IsNew() && CurveData)
     {
-    	ClearCurveData();
+    	DeleteCurveData();
     }
     MakeDestroy();
 	
@@ -61,7 +61,26 @@ URMECurveContainer* URMECurveContainer::Create(FTransformCurve* SourceData, bool
 	return NewContainer;
 }
 
-void URMECurveContainer::ClearCurveData()
+void URMECurveContainer::ClearAllKeys()
+{
+	if (CurveData != nullptr)
+	{
+		auto ResetKeys = [](FVectorCurve& InCurve)
+		{
+			for (int Index = 0; Index < 3; ++Index)
+			{
+				FRichCurve& Curve = InCurve.FloatCurves[Index];
+				Curve.Reset();
+			}
+		};
+
+		ResetKeys(CurveData->TranslationCurve);
+		ResetKeys(CurveData->RotationCurve);
+		ResetKeys(CurveData->ScaleCurve);
+	}
+}
+
+void URMECurveContainer::DeleteCurveData()
 {
 	if (CurveData != nullptr)
 	{
@@ -108,7 +127,7 @@ void URMECurveContainer::OverrideCurveData(FTransformCurve& NewCurveData)
 {
 	if (CurveData != nullptr && IsNew())
 	{
-		ClearCurveData();
+		DeleteCurveData();
 	}
 	CurveData = &NewCurveData;
 }

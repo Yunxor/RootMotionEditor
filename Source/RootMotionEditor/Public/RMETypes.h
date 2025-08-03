@@ -70,7 +70,8 @@ public:
 	virtual void BeginDestroy() override;
 
 	static URMECurveContainer* Create(FTransformCurve* SourceData = nullptr, bool bAddToRoot = false);
-	void ClearCurveData();
+	void ClearAllKeys();
+	void DeleteCurveData();
 	void MakeDestroy();
 
 	FTransformCurve* GetOrCreateCurveData();
