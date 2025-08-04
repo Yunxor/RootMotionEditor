@@ -12,3 +12,6 @@
 ## Build package
 Build压缩包里包含了编译好的dll等文件，理论可直接使用于UE5.5.4版本的项目中，无需再次编译。
 
+## Video
+[[UE5] Root Motion Editor 安装&使用演示](https://www.bilibili.com/video/BV1CHhLzGE7G/?p=2&share_source=copy_web&vd_source=2ebd64002590b9e579975096ec78e47a)
+
