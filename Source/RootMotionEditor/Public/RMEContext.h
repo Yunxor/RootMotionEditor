@@ -7,7 +7,11 @@ class FRMEContext : public TSharedFromThis<FRMEContext>, public FGCObject
 {
 	
 public:
-	void Initialize();
+	static FRMEContext* Get() { return Instance; }
+	static void Initialize();
+	static void Shutdown();
+	
+	void Setup();
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	virtual FString GetReferencerName() const override { return TEXT("FRootMotionEditedContext"); }
@@ -53,4 +57,7 @@ protected:
 	TSharedPtr<class FRMEPreviewScene> PreviewScene;
 	
 	TObjectPtr<UAnimSequence> CurrentAnimation;
+
+private:
+	static FRMEContext* Instance;
 };

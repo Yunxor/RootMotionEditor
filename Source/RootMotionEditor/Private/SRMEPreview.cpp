@@ -2,8 +2,7 @@
 
 
 #include "SRMEPreview.h"
-
-#include "RootMotionEditorModule.h"
+#include "RMEContext.h"
 #include "SRMEViewport.h"
 #include "SSimpleTimeSlider.h"
 
@@ -11,8 +10,11 @@
 
 const FName SRMEPreview::TabName = FName(TEXT("RootMotionEditorPreviewTab"));
 
-void SRMEPreview::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager, TSharedRef<FRMEContext> Context)
+void SRMEPreview::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager)
 {
+	FRMEContext* Context = FRMEContext::Get();
+	checkf(Context, TEXT("This context of Root Motion Editor not found, please check it !!"));
+	
 	FRMEPreviewRequiredArgs RequiredArgs = Context->MakePreviewRequiredArgs();
 	
 	TabManager->RegisterTabSpawner(
@@ -41,13 +43,13 @@ void SRMEPreview::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager, 
 							{
 								Context->SetViewModelPlayTime(NewScrubPosition, !bScrubbing);
 							})
-							.OnBackwardEnd_Raw(&Context.Get(), &FRMEContext::PreviewBackwardEnd)
-							.OnBackwardStep_Raw(&Context.Get(), &FRMEContext::PreviewBackwardStep)
-							.OnBackward_Raw(&Context.Get(), &FRMEContext::PreviewBackward)
-							.OnPause_Raw(&Context.Get(), &FRMEContext::PreviewPause)
-							.OnForward_Raw(&Context.Get(), &FRMEContext::PreviewForward)
-							.OnForwardStep_Raw(&Context.Get(), &FRMEContext::PreviewForwardStep)
-							.OnForwardEnd_Raw(&Context.Get(), &FRMEContext::PreviewForwardEnd)
+							.OnBackwardEnd_Raw(Context, &FRMEContext::PreviewBackwardEnd)
+							.OnBackwardStep_Raw(Context, &FRMEContext::PreviewBackwardStep)
+							.OnBackward_Raw(Context, &FRMEContext::PreviewBackward)
+							.OnPause_Raw(Context, &FRMEContext::PreviewPause)
+							.OnForward_Raw(Context, &FRMEContext::PreviewForward)
+							.OnForwardStep_Raw(Context, &FRMEContext::PreviewForwardStep)
+							.OnForwardEnd_Raw(Context, &FRMEContext::PreviewForwardEnd)
 						];
 				}
 			)

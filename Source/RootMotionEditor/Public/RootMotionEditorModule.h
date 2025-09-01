@@ -2,13 +2,10 @@
 
 #pragma once
 
-#include "RMEContext.h"
 #include "Modules/ModuleManager.h"
 
 class FToolBarBuilder;
 class FMenuBuilder;
-
-DECLARE_LOG_CATEGORY_EXTERN(LogRootMotionEditor, Log, All);
 
 class FRootMotionEditorModule : public IModuleInterface
 {
@@ -21,8 +18,6 @@ public:
 
 	/** Get the instance of this module. */
 	ROOTMOTIONEDITOR_API static FRootMotionEditorModule& Get();
-
-	TSharedRef<FRMEContext> GetContext();
 	
 	void PluginButtonClicked();
 
@@ -34,7 +29,4 @@ private:
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
-	
-	TSharedPtr<FRMEContext> Context;
-
 };

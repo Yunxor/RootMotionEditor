@@ -5,7 +5,19 @@
 #include "SRMEViewport.h"
 
 
+FRMEContext* FRMEContext::Instance;
 void FRMEContext::Initialize()
+{
+	Instance = new FRMEContext;
+	Instance->Setup();
+}
+
+void FRMEContext::Shutdown()
+{
+	delete Instance;
+}
+
+void FRMEContext::Setup()
 {
 	if (!PreviewScene.IsValid())
 	{
@@ -21,7 +33,7 @@ void FRMEContext::Initialize()
 	}
 
 	ViewModel = MakeShared<FRMEViewModel>();
-	ViewModel->Initialize(PreviewScene.ToSharedRef(), StaticCastSharedRef<FRMEContext>(AsShared()));
+	ViewModel->Initialize(PreviewScene.ToSharedRef());
 
 	CurveDataPtr = URMECurveContainer::Create();
 }

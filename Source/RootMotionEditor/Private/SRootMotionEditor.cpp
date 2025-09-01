@@ -98,14 +98,14 @@ void SRootMotionEditor::Construct(const FArguments& InArgs)
 {
 	TabManager = InArgs._TabManager;
 
-	TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
+	FRMEContext* Context = FRMEContext::Get();
 	Context->InitTab(TabManager);
 	
 	FRMEPreviewRequiredArgs RequiredArgs = Context->MakePreviewRequiredArgs();
 
 	// Register DockTab.
 	SRMEAssetsSelector::RegisterTabSpawner(TabManager);
-	SRMEPreview::RegisterTabSpawner(TabManager, Context);
+	SRMEPreview::RegisterTabSpawner(TabManager);
 
 
 	if (!CurveEditor.IsValid())
@@ -113,7 +113,7 @@ void SRootMotionEditor::Construct(const FArguments& InArgs)
 		CurveEditor = MakeShared<FRMECurveEditor>();
 		CurveEditor->Initialize();
 	}
-	CurveEditor->RegisterTabSpawner(TabManager, Context);
+	CurveEditor->RegisterTabSpawner(TabManager);
 	CurveEditor->RegisterConfigTabSpawner(TabManager);
 	
 

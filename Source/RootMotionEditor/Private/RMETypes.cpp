@@ -4,6 +4,8 @@
 #include "RMETypes.h"
 #include "Curves/CurveVector.h"
 
+DEFINE_LOG_CATEGORY(LogRootMotionEditor);
+
 
 FLinearColor URMECurveContainer::GetCurveAxisColor(const int32& Index)
 {

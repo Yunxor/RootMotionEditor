@@ -5,6 +5,7 @@
 #include "EditorModeRegistry.h"
 #include "RMEStyle.h"
 #include "RMECommands.h"
+#include "RMEContext.h"
 #include "RMEEdMode.h"
 #include "SRootMotionEditor.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -12,7 +13,6 @@
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
 
-DEFINE_LOG_CATEGORY(LogRootMotionEditor);
 
 FString FRootMotionEditorModule::RootMotionEditorLayoutIni;
 
@@ -70,11 +70,6 @@ FRootMotionEditorModule& FRootMotionEditorModule::Get()
 	return FModuleManager::LoadModuleChecked<FRootMotionEditorModule>("RootMotionEditor");
 }
 
-TSharedRef<FRMEContext> FRootMotionEditorModule::GetContext()
-{
-	return Context.ToSharedRef();
-}
-
 
 void FRootMotionEditorModule::PluginButtonClicked()
 {
@@ -83,8 +78,7 @@ void FRootMotionEditorModule::PluginButtonClicked()
 
 void FRootMotionEditorModule::OnPostEngineInit()
 {
-	Context = MakeShared<FRMEContext>();
-	Context->Initialize();
+	FRMEContext::Initialize();
 	
 	SRootMotionEditor::RegisterTabSpawner();
 }
@@ -92,6 +86,8 @@ void FRootMotionEditorModule::OnPostEngineInit()
 void FRootMotionEditorModule::OnPreExit()
 {
 	SRootMotionEditor::UnregisterTabSpawner();
+
+	FRMEContext::Shutdown();
 }
 
 void FRootMotionEditorModule::RegisterMenus()
@@ -102,15 +98,15 @@ void FRootMotionEditorModule::RegisterMenus()
 	{
 		UToolMenu* Menu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.Window");
 		{
-			FToolMenuSection& Section = Menu->FindOrAddSection("WindowLayout");
+			FToolMenuSection& Section = Menu->FindOrAddSection("RootMotionEditor");
 			Section.AddMenuEntryWithCommandList(FRMECommands::Get().OpenPluginWindow, PluginCommands);
 		}
 	}
 
 	{
-		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
+		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.User");
 		{
-			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("Settings");
+			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("RootMotionEditor");
 			{
 				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FRMECommands::Get().OpenPluginWindow));
 				Entry.SetCommandList(PluginCommands);

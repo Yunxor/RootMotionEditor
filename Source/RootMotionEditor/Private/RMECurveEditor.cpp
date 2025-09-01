@@ -8,7 +8,6 @@
 #include "RMEContext.h"
 #include "RMETypes.h"
 #include "RMEViewModel.h"
-#include "SWarningOrErrorBox.h"
 #include "Tree/CurveEditorTreeFilter.h"
 #include "Tree/SCurveEditorTree.h"
 #include "Tree/SCurveEditorTreeFilterStatusBar.h"
@@ -16,6 +15,7 @@
 #include "Tree/SCurveEditorTreeSelect.h"
 #include "Tree/SCurveEditorTreeTextFilter.h"
 #include "Widgets/Layout/SScrollBorder.h"
+#include "Widgets/Input/SSegmentedControl.h"
 
 #define LOCTEXT_NAMESPACE "RMECurveEditor"
 
@@ -143,14 +143,15 @@ void FRMECurveEditor::SetupCurveEditor()
 
 URMECurveContainer* FRMECurveEditor::GetCurveContainer() const
 {
-	if (EditedContext != nullptr)
+	FRMEContext* Context = FRMEContext::Get();
+	if (Context != nullptr)
 	{
-		return EditedContext->GetCurveContainer();
+		return Context->GetCurveContainer();
 	}
 	return nullptr;
 }
 
-void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager, TSharedRef<FRMEContext> Context)
+void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager)
 {
 	if (!CurveEditor.IsValid())
 	{
@@ -158,7 +159,6 @@ void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManag
 	}
 
 	WeakTabManager = TabManager;
-	EditedContext = Context.ToSharedPtr();
 
 	CurveEditorTree = SNew(SCurveEditorTree, CurveEditor);
 
@@ -185,12 +185,12 @@ void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManag
 				SNew(SCurveEditorTreeFilterStatusBar, CurveEditor)
 			]
 		];
-
-	OnLoadCurveDataCompleted.AddLambda([WeakContext = Context.ToWeakPtr()]()
+	
+	OnLoadCurveDataCompleted.AddLambda([]()
 	{
-		if (FRMEContext* ContextPtr = WeakContext.Pin().Get())
+		if (FRMEContext* Context = FRMEContext::Get())
 		{
-			if (FRMEViewModel* ViewModel = ContextPtr->GetViewModel())
+			if (FRMEViewModel* ViewModel = Context->GetViewModel())
 			{
 				ViewModel->SetRootMotionViewMode(ERootMotionViewMode::CurveEditor);
 			}
@@ -246,11 +246,17 @@ void FRMECurveEditor::RegisterConfigTabSpawner(const TSharedPtr<class FTabManage
 							+SScrollBox::Slot()
 							.Padding(5.f)
 							[
-								SNew(SWarningOrErrorBox)
-								.Message_Lambda([this]()
+								SNew(SSegmentedControl<ERMEBoneExtractMode>)
+								.Value_Lambda([this]()
 								{
-									return GetBoneMessage(this->bIsSetCustomBone);
+									return Config->ExtractMode;
 								})
+								.OnValueChanged_Lambda([this](ERMEBoneExtractMode NewMode)
+								{
+									Config->ExtractMode = NewMode;
+								})
+								+SSegmentedControl<ERMEBoneExtractMode>::Slot(ERMEBoneExtractMode::RootMotion).Text(LOCTEXT("RootMotionExtractMode", "Root Motion"))
+								+SSegmentedControl<ERMEBoneExtractMode>::Slot(ERMEBoneExtractMode::AnimPose).Text(LOCTEXT("AnimPoseExtractMode", "Anim Pose"))
 							]
 							+SScrollBox::Slot()
 							[
@@ -404,8 +410,9 @@ void FRMECurveEditor::AddNewCurveInternal(FVectorCurve& CurveData, UObject* Curv
 
 void FRMECurveEditor::CreateDefaultCurves()
 {
-	ensureMsgf(EditedContext, TEXT("The Context of root motion editor is null !!"));
-	AddNewCurve(EditedContext->GetCurveContainer());
+	FRMEContext* Context = FRMEContext::Get();
+	ensureMsgf(Context, TEXT("The Context of root motion editor is null !!"));
+	AddNewCurve(Context->GetCurveContainer());
 }
 
 void FRMECurveEditor::AddNewCurve(URMECurveContainer* Container)
@@ -533,50 +540,60 @@ void FRMECurveEditor::LoadExternalAnimData()
 	UAnimSequence* AnimSequence = Selector ? Selector->GetSequence() : nullptr;
 	if (AnimSequence != nullptr)
 	{
-		const bool bIsCustomRootBone = Config && !Config->CustomLoadBoneName.IsNone();
+		checkf(Config, TEXT("Not fount root motion editor config, please check it."));
 		
-		if (!bIsCustomRootBone && !AnimSequence->HasRootMotion())
+		if (Config->ExtractMode == ERMEBoneExtractMode::AnimPose)
 		{
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("InvalidMotionData", "The AnimSequence haven't root motion, please check whether EnableRootMotion is enabled."));
-			return;
-		}
-
-		FName TargetBoneName = NAME_None;
-		FAnimPoseEvaluationOptions EvaluationOptions = FAnimPoseEvaluationOptions();
-		EAnimPoseSpaces Space = EAnimPoseSpaces::World;
-		// check bone.
-		if (bIsCustomRootBone)
-		{
-			TargetBoneName = Config->CustomLoadBoneName;
-			EvaluationOptions = Config->EvaluationOptions;
-			Space = Config->Space;
-			if (!RootMotionEditorStatics::IsValidBoneName(AnimSequence, TargetBoneName))
+			FName TargetBoneName = Config->CustomLoadBoneName;
+			if (TargetBoneName.IsNone() || !RootMotionEditorStatics::IsValidBoneName(AnimSequence, TargetBoneName))
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("InvalidAnimData", "Load bone name ({0}) is invalid from the anim({1})."), FText::FromString(TargetBoneName.ToString()), FText::FromString(GetNameSafe(AnimSequence))));
 				return;
 			}
-		}
 
-		bool bWriteData = true;
-		if (bHasCurveEdited)
-		{
-			const EAppReturnType::Type Choice = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("HasEditedCurve", "You have already edited the curve. Are you sure you want to discard it and write it into the animation data ?"));
-			if (Choice == EAppReturnType::No)
+			// Prompts user.
+			if (bHasCurveEdited)
 			{
-				bWriteData = false;
+				const EAppReturnType::Type Choice = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("HasEditedCurve", "You have already edited the curve. Are you sure you want to discard it and write it into the animation data ?"));
+				if (Choice == EAppReturnType::No)
+				{
+					return;
+				}
 			}
-		}
 
-		if (bWriteData)
-		{
 			ClearEditorAllCurves();
 
-			const bool bIsAdditiveCurve = Config ? Config->bIsAdditiveCurve : false;
-			const int32 SampleRate = Config ? Config->SampleRate : 30;
-			const int32 ExtractChannel = Config ? Config->ExtractChannels : static_cast<int32>(ERMEBoneExtractChannelType::All);
+			URMECurveContainer* CurveDataPtr = GetCurveContainer();
+			const FTransformCurve& Curve = RootMotionEditorStatics::BakeAnimPoseBoneToCurve(AnimSequence, TargetBoneName, Config->SampleRate,
+					Config->ExtractChannels, Config->bIsAdditiveCurve, Config->EvaluationOptions, Config->Space);
+			CurveDataPtr->CopyCurveData(Curve);
+			AddNewCurve(CurveDataPtr);
+
+			OnLoadCurveDataCompleted.Broadcast();
+		}
+		else if (Config->ExtractMode == ERMEBoneExtractMode::RootMotion)
+		{
+			if (!AnimSequence->HasRootMotion())
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("InvalidMotionData", "The AnimSequence haven't root motion, please check whether EnableRootMotion is enabled."));
+				return;
+			}
+
+			// Prompts user.
+			if (bHasCurveEdited)
+			{
+				const EAppReturnType::Type Choice = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("HasEditedCurve", "You have already edited the curve. Are you sure you want to discard it and write it into the animation data ?"));
+				if (Choice == EAppReturnType::No)
+				{
+					return;
+				}
+			}
+
+			ClearEditorAllCurves();
 
 			URMECurveContainer* CurveDataPtr = GetCurveContainer();
-			CurveDataPtr->CopyCurveData(RootMotionEditorStatics::BakeRootBoneToCurves(AnimSequence, bIsAdditiveCurve, SampleRate, ExtractChannel,  TargetBoneName, EvaluationOptions, Space));
+			const FTransformCurve& Curve = RootMotionEditorStatics::BakeRootBoneToCurve(AnimSequence, Config->SampleRate, Config->ExtractChannels, Config->bIsAdditiveCurve);
+			CurveDataPtr->CopyCurveData(Curve);
 			AddNewCurve(CurveDataPtr);
 
 			OnLoadCurveDataCompleted.Broadcast();
@@ -586,7 +603,8 @@ void FRMECurveEditor::LoadExternalAnimData()
 
 void FRMECurveEditor::SaveToExternalAnimData()
 {
-	const FTransformCurve* CurveData = EditedContext ? EditedContext->GetRootMotionTransformCurve() : nullptr;
+	FRMEContext* Context = FRMEContext::Get();
+	const FTransformCurve* CurveData = Context ? Context->GetRootMotionTransformCurve() : nullptr;
 	if (!bHasCurveEdited || !CurveData)
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NoCurveData", "Not found your edited curve data. Can't write to the anim asset."));

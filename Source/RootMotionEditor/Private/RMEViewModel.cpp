@@ -4,7 +4,6 @@
 #include "RMEViewModel.h"
 #include "AnimPreviewInstance.h"
 #include "RMEPreviewScene.h"
-#include "RootMotionEditorModule.h"
 #include "Animation/DebugSkelMeshComponent.h"
 
 
@@ -169,10 +168,9 @@ void FRMEViewModel::AddReferencedObjects(FReferenceCollector& Collector)
 {
 }
 
-void FRMEViewModel::Initialize(const TSharedRef<FRMEPreviewScene>& InPreviewScene, const TSharedRef<FRMEContext>& InContext)
+void FRMEViewModel::Initialize(const TSharedRef<FRMEPreviewScene>& InPreviewScene)
 {
 	PreviewScenePtr = InPreviewScene;
-	EditedContext = InContext;
 }
 
 void FRMEViewModel::Tick(float DeltaSeconds)
@@ -273,12 +271,17 @@ FTransform FRMEViewModel::GetRootMotionTransform(float Time) const
 			const UAnimSequence* AnimSeq = GetAnimation();
 			if (AnimSeq != nullptr)
 			{
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 6
+				FAnimExtractContext ExtractContext(Time, true, {}, false);
+				RootMotionTransform = AnimSeq->ExtractRootMotionFromRange(0, Time, ExtractContext);
+#else
 				RootMotionTransform = AnimSeq->ExtractRootMotionFromRange(0, Time);
+#endif
 			}
 		}
 		break;
 	case ERootMotionViewMode::CurveEditor:
-		if (const FRMEContext* Context = GetContext())
+		if (const FRMEContext* Context = FRMEContext::Get())
 		{
 			RootMotionTransform = Context->GetCurveTransform(Time, 1.f);
 		}

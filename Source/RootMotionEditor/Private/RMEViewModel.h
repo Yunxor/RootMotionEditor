@@ -42,7 +42,7 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	virtual FString GetReferencerName() const override { return TEXT("FRootMotionEditedViewModel"); }
 
-	void Initialize(const TSharedRef<FRMEPreviewScene>& InPreviewScene, const TSharedRef<class FRMEContext>& InContext);
+	void Initialize(const TSharedRef<FRMEPreviewScene>& InPreviewScene);
 	
 	void Tick(float DeltaSeconds);
 
@@ -58,8 +58,6 @@ public:
 
 	void SetRootMotionViewMode(ERootMotionViewMode::Type InType);
 	ERootMotionViewMode::Type GetRootMotionViewMode() const { return RootMotionViewMode; }
-
-	FRMEContext* GetContext() const { return EditedContext.Pin().Get(); }
 
 	void PreviewBackwardEnd();
 	void PreviewBackwardStep();
@@ -79,7 +77,6 @@ private:
 
 	/** Weak pointer to the PreviewScene */
 	TWeakPtr<FRMEPreviewScene> PreviewScenePtr;
-	TWeakPtr<FRMEContext> EditedContext;
 
 	float PlayTime = 0.f;
 	float DeltaTimeMultiplier = 1.f;

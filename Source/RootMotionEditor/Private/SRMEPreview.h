@@ -33,7 +33,7 @@ public:
 	const static FName TabName;
 
 public:
-	static void RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager, TSharedRef<class FRMEContext> Context);
+	static void RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManager);
 	
 
 	void Construct(const FArguments& InArgs, const FRMEPreviewRequiredArgs& InRequiredArgs);

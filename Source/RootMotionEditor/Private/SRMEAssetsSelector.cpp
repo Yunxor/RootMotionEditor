@@ -5,7 +5,6 @@
 
 #include "RMEContext.h"
 #include "RMETypes.h"
-#include "RootMotionEditorModule.h"
 #include "SWarningOrErrorBox.h"
 
 #define LOCTEXT_NAMESPACE "SRootMotionEditedAssetView"
@@ -113,8 +112,10 @@ void SRMEAssetsSelector::OnFinishedChangingProperties(const FPropertyChangedEven
 	{
 		if (AssetCollection)
 		{
-			TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
-			Context->SetAnimationAsset(AssetCollection->AnimSequence);
+			if (FRMEContext* Context = FRMEContext::Get())
+			{
+				Context->SetAnimationAsset(AssetCollection->AnimSequence);
+			}
 		}
 	}
 

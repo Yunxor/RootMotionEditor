@@ -4,12 +4,12 @@
 #include "SRMEViewport.h"
 #include "AssetEditorModeManager.h"
 #include "RMECommands.h"
+#include "RMEContext.h"
 #include "RMEEdMode.h"
 #include "SMEViewportToolBar.h"
 #include "RMEPreviewScene.h"
 #include "RMEStatics.h"
 #include "RMEViewModel.h"
-#include "RootMotionEditorModule.h"
 #include "UnrealWidget.h"
 #include "RMETypes.h"
 #include "Animation/DebugSkelMeshComponent.h"
@@ -345,21 +345,29 @@ TSharedPtr<SWidget> SRMEViewport::MakeViewportToolbar()
 
 void SRMEViewport::OnSetRootMotionViewMode(int32 ViewMode)
 {
-	TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
-	Context->SetRootMotionViewMode(ViewMode);
+	if (FRMEContext* Context = FRMEContext::Get())
+	{
+		Context->SetRootMotionViewMode(ViewMode);
+	}
 	Invalidate();
 }
 
 bool SRMEViewport::IsRootMotionViewModeSet(int32 ViewMode) const
 {
-	TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
-	return Context->GetRootMotionViewMode() == ViewMode;
+	if (FRMEContext* Context = FRMEContext::Get())
+	{
+		return Context->GetRootMotionViewMode() == ViewMode;
+	}
+	return false;
 }
 
 int32 SRMEViewport::GetRootMotionViewMode() const
 {
-	TSharedRef<FRMEContext> Context = FRootMotionEditorModule::Get().GetContext();
-	return Context->GetRootMotionViewMode();
+	if (FRMEContext* Context = FRMEContext::Get())
+	{
+		return Context->GetRootMotionViewMode();
+	}
+	return 0;
 }
 
 #undef LOCTEXT_NAMESPACE

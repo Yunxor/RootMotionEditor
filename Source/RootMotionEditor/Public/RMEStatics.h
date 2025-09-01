@@ -54,7 +54,25 @@ namespace RootMotionEditorStatics
 		return NAME_None;
 	}
 
-	static FTransformCurve BakeRootBoneToCurves(UAnimSequence* AnimSequence, bool bIsAdditiveCurve = false, int32 SampleRate = 30, int32 ExtractChannel = 0, FName CustomExtractBone = NAME_None, const FAnimPoseEvaluationOptions& EvaluationOptions = FAnimPoseEvaluationOptions(), EAnimPoseSpaces Space = EAnimPoseSpaces::World)
+	static void ExtractDataFilter(FTransform& InOutTransform, int32 ExtractChannel)
+	{
+		if (!EnumHasAnyFlags(ExtractChannel, ERMEBoneExtractChannelType::Translation))
+		{
+			InOutTransform.SetTranslation(FVector::ZeroVector);
+		}
+		if (!EnumHasAnyFlags(ExtractChannel, ERMEBoneExtractChannelType::Rotation))
+		{
+			InOutTransform.SetRotation(FQuat::Identity);
+		}
+		if (!EnumHasAnyFlags(ExtractChannel, ERMEBoneExtractChannelType::Scale))
+		{
+			InOutTransform.SetScale3D(FVector::OneVector);
+		}
+	}
+	
+
+	static FTransformCurve BakeAnimPoseBoneToCurve(UAnimSequence* AnimSequence, FName CustomExtractBone, int32 SampleRate = 30, int32 ExtractChannel = 0, bool bIsAdditiveCurve = false, 
+		const FAnimPoseEvaluationOptions& EvaluationOptions = FAnimPoseEvaluationOptions(), EAnimPoseSpaces Space = EAnimPoseSpaces::World)
 	{
 		if (!AnimSequence)
 		{
@@ -62,8 +80,46 @@ namespace RootMotionEditorStatics
 			return FTransformCurve();
 		}
 		
-		const bool bIsCustomExtract = !CustomExtractBone.IsNone();
-		if (!bIsCustomExtract && !AnimSequence->HasRootMotion())
+		if (CustomExtractBone == NAME_None)
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("Invalid Bone name (%s)."), *CustomExtractBone.ToString());
+			return FTransformCurve();
+		}
+
+		const float SampleInterval = 1.f / static_cast<float>(SampleRate);
+		const float AnimLength = AnimSequence->GetPlayLength();
+		
+		FTransformCurve Result;
+
+		// use GetPose to get bone transform delta.
+		float Time = 0.0f;
+		FTransform LastBoneTransform = FTransform::Identity;
+		while (Time <= AnimLength)
+		{
+			FAnimPose AnimPose;
+			UAnimPoseExtensions::GetAnimPoseAtTime(AnimSequence, Time, EvaluationOptions, AnimPose);
+			const FTransform& CurrentBoneTransform = UAnimPoseExtensions::GetBonePose(AnimPose, CustomExtractBone, Space);
+
+			FTransform TargetBoneTransform = bIsAdditiveCurve ? CurrentBoneTransform.GetRelativeTransform(LastBoneTransform) : CurrentBoneTransform;
+			ExtractDataFilter(TargetBoneTransform, ExtractChannel);
+			Result.UpdateOrAddKey(TargetBoneTransform, Time);
+			LastBoneTransform = CurrentBoneTransform;
+
+			Time += SampleInterval;
+		}
+		
+		return Result;
+	}
+
+	static FTransformCurve BakeRootBoneToCurve(UAnimSequence* AnimSequence, int32 SampleRate = 30, int32 ExtractChannel = 0, bool bIsAdditiveCurve = false)
+	{
+		if (!AnimSequence)
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("Invalid AnimSequence"));
+			return FTransformCurve();
+		}
+		
+		if (!AnimSequence->HasRootMotion())
 		{
 			UE_LOG(LogAnimation, Warning, TEXT("AnimSequence haven't root motion."));
 			return FTransformCurve();
@@ -72,62 +128,28 @@ namespace RootMotionEditorStatics
 		const float SampleInterval = 1.f / static_cast<float>(SampleRate);
 		const float AnimLength = AnimSequence->GetPlayLength();
 
-		const bool bExtractMotion = EnumHasAnyFlags(ExtractChannel, ERMEBoneExtractChannelType::Translation);
-		const bool bExtractRot = EnumHasAnyFlags(ExtractChannel, ERMEBoneExtractChannelType::Rotation);
-		const bool bExtractScale = EnumHasAnyFlags(ExtractChannel, ERMEBoneExtractChannelType::Scale);
-
-		auto ExtractDataFilter = [bExtractMotion, bExtractRot, bExtractScale](FTransform& InOutTransform)
-		{
-			if (!bExtractMotion)
-			{
-				InOutTransform.SetTranslation(FVector::ZeroVector);
-			}
-			if (!bExtractRot)
-			{
-				InOutTransform.SetRotation(FQuat::Identity);
-			}
-			if (!bExtractScale)
-			{
-				InOutTransform.SetScale3D(FVector::OneVector);
-			}
-		};
 
 		FTransformCurve Result;
-		if (!bIsCustomExtract)
+		
+		float Time = 0.0f;
+		FTransform LastRootMotion = FTransform::Identity;
+		while (Time < AnimLength)
 		{
-			float Time = 0.0f;
-			FTransform LastRootMotion = FTransform::Identity;
-			while (Time < AnimLength)
-			{
-				// direct to extract root motion.
-				const FTransform& RootMotionDelta = AnimSequence->ExtractRootMotion(Time, SampleInterval, false);
-				Time = FMath::Clamp(Time + SampleInterval, 0.f, AnimLength);
+			// direct to extract root motion.
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 6
+			FAnimExtractContext ExtractContext(Time, true, FDeltaTimeRecord(SampleInterval), false);
+			const FTransform& RootMotionDelta = AnimSequence->ExtractRootMotion(ExtractContext);
+#else
+			const FTransform& RootMotionDelta = AnimSequence->ExtractRootMotion(Time, SampleInterval, false);
+#endif
+			Time = FMath::Clamp(Time + SampleInterval, 0.f, AnimLength);
 
-				LastRootMotion = bIsAdditiveCurve ? RootMotionDelta : RootMotionDelta * LastRootMotion;
-				FTransform WriteTransform = LastRootMotion;
-				ExtractDataFilter(WriteTransform);
-				Result.UpdateOrAddKey(WriteTransform, Time);
-			}
+			LastRootMotion = bIsAdditiveCurve ? RootMotionDelta : RootMotionDelta * LastRootMotion;
+			FTransform WriteTransform = LastRootMotion;
+			ExtractDataFilter(WriteTransform, ExtractChannel);
+			Result.UpdateOrAddKey(WriteTransform, Time);
 		}
-		else
-		{
-			// use GetPose to get bone transform delta.
-			float Time = 0.0f;
-			FTransform LastBoneTransform = FTransform::Identity;
-			while (Time <= AnimLength)
-			{
-				FAnimPose AnimPose;
-				UAnimPoseExtensions::GetAnimPoseAtTime(AnimSequence, Time, EvaluationOptions, AnimPose);
-				const FTransform& CurrentBoneTransform = UAnimPoseExtensions::GetBonePose(AnimPose, CustomExtractBone, Space);
-
-				FTransform TargetBoneTransform = bIsAdditiveCurve ? CurrentBoneTransform.GetRelativeTransform(LastBoneTransform) : CurrentBoneTransform;
-				ExtractDataFilter(TargetBoneTransform);
-				Result.UpdateOrAddKey(TargetBoneTransform, Time);
-				LastBoneTransform = CurrentBoneTransform;
-
-				Time += SampleInterval;
-			}
-		}
+		
 
 		return Result;
 	}

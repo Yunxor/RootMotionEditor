@@ -6,6 +6,9 @@
 #include "AnimPose.h"
 #include "RMETypes.generated.h"
 
+
+DECLARE_LOG_CATEGORY_EXTERN(LogRootMotionEditor, Log, All);
+
 namespace ERootMotionViewMode
 {
 	enum Type
@@ -44,6 +47,13 @@ enum class ERMEBoneExtractChannelType : uint32
 	Scale		= 1	<< 2,
 
 	All = Translation | Rotation | Scale,
+};
+
+UENUM()
+enum class ERMEBoneExtractMode : uint8
+{
+	RootMotion = 0,
+	AnimPose,
 };
 
 ENUM_CLASS_FLAGS(ERMEBoneExtractChannelType);
@@ -95,8 +105,16 @@ class URMECurveEditorConfig : public UObject
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load")
+	UPROPERTY()
+	ERMEBoneExtractMode ExtractMode;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load", meta = (EditCondition = "ExtractMode == ERMEBoneExtractMode::AnimPose", EditConditionHides))
 	FName CustomLoadBoneName = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load", meta = (EditCondition = "ExtractMode == ERMEBoneExtractMode::AnimPose", EditConditionHides))
+	FAnimPoseEvaluationOptions EvaluationOptions = FAnimPoseEvaluationOptions();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load", meta = (EditCondition = "ExtractMode == ERMEBoneExtractMode::AnimPose", EditConditionHides))
+	EAnimPoseSpaces Space = EAnimPoseSpaces::World;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load", meta = (Bitmask, BitmaskEnum = "/Script/RootMotionEditor.ERMEBoneExtractChannelType"))
 	int32 ExtractChannels = int32(ERMEBoneExtractChannelType::Translation);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load")
@@ -104,10 +122,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load", meta = (ToolTip = "If it is true, it will make every frame of the curve is motion delta."))
 	bool bIsAdditiveCurve = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load")
-	FAnimPoseEvaluationOptions EvaluationOptions = FAnimPoseEvaluationOptions();
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Load")
-	EAnimPoseSpaces Space = EAnimPoseSpaces::World;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
 	FName CustomSaveBoneName = NAME_None;

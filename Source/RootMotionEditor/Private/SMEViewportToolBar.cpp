@@ -27,7 +27,7 @@ void SMEViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<SRMEView
 		]
 		+SVerticalBox::Slot()
 		.AutoHeight()
-		.Padding(FMargin(4.0f, 3.0f, 0.0f, 0.0f))
+		// .Padding(FMargin(4.0f, 3.0f, 0.0f, 0.0f))
 		[
 			// Display text (e.g., item being previewed)
 			SNew(SRichTextBlock)

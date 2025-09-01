@@ -36,7 +36,7 @@ public:
 	void Initialize();
 	void OnDestroy();
 
-	void RegisterTabSpawner(const TSharedPtr<class FTabManager>& TabManager, TSharedRef<class FRMEContext> Context);
+	void RegisterTabSpawner(const TSharedPtr<class FTabManager>& TabManager);
 	void RegisterConfigTabSpawner(const TSharedPtr<class FTabManager>& TabManager);
 
 	FSimpleMulticastDelegate OnLoadCurveDataCompleted;
@@ -77,7 +77,6 @@ private:
 	
 	TSharedPtr<class FCurveEditor> CurveEditor;
 	TSharedPtr<class SCurveEditorPanel> CurveEditorPanel;
-	TSharedPtr<FRMEContext> EditedContext;
 	/** The search widget for filtering curves in the Curve Editor tree. */
 	TSharedPtr<SWidget> CurveEditorSearchBox;
 	/** The tree widget in the curve editor */
