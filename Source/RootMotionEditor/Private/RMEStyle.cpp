@@ -32,15 +32,15 @@ FName FRMEStyle::GetStyleSetName()
 	return StyleSetName;
 }
 
-const FVector2D Icon16x16(16.0f, 16.0f);
-const FVector2D Icon20x20(20.0f, 20.0f);
+const FVector2D Icon40x40(40.0f, 40.0f);
 
 TSharedRef< FSlateStyleSet > FRMEStyle::Create()
 {
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("RootMotionEditorStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("RootMotionEditor")->GetBaseDir() / TEXT("Resources"));
 
-	Style->Set("RootMotionEditor.OpenPluginWindow", new IMAGE_BRUSH_SVG(TEXT("PlaceholderButtonIcon"), Icon20x20));
+	Style->Set("RootMotionEditor.OpenPluginWindow", new IMAGE_BRUSH(TEXT("OpenButtonIcon"), Icon40x40));
+	
 
 	return Style;
 }
