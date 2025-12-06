@@ -10,10 +10,10 @@ class SRMEViewport;
 /**
  * 
  */
-class SMEViewportToolBar : public SCommonEditorViewportToolbarBase
+class SRMEViewportToolBar : public SCommonEditorViewportToolbarBase
 {
 public:
-	SLATE_BEGIN_ARGS(SMEViewportToolBar)
+	SLATE_BEGIN_ARGS(SRMEViewportToolBar)
 	{}
 
 	SLATE_END_ARGS()

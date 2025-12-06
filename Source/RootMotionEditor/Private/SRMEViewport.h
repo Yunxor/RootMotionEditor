@@ -9,7 +9,7 @@
 #include "Animation/DebugSkelMeshComponent.h"
 
 
-class SMEViewportToolBar;
+class SRMEViewportToolBar;
 class SRMEViewport;
 class FRMEPreviewScene;
 class FRMEViewModel;
@@ -91,7 +91,7 @@ protected:
 	TSharedPtr<FRMEViewportClient> ViewportClient;
 
 	/** The viewport toolbar */
-	TSharedPtr<SMEViewportToolBar> ViewportToolbar;
+	TSharedPtr<SRMEViewportToolBar> ViewportToolbar;
 	
 	/** The preview scene that we are viewing */
 	TWeakPtr<FRMEPreviewScene> PreviewScenePtr;

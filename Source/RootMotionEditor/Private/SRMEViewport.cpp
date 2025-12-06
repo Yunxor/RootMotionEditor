@@ -6,7 +6,7 @@
 #include "RMECommands.h"
 #include "RMEContext.h"
 #include "RMEEdMode.h"
-#include "SMEViewportToolBar.h"
+#include "SRMEViewportToolBar.h"
 #include "RMEPreviewScene.h"
 #include "RMEStatics.h"
 #include "RMEViewModel.h"
@@ -340,7 +340,7 @@ TSharedRef<FEditorViewportClient> SRMEViewport::MakeEditorViewportClient()
 
 TSharedPtr<SWidget> SRMEViewport::MakeViewportToolbar()
 {
-	return SAssignNew(ViewportToolbar, SMEViewportToolBar, SharedThis(this));
+	return SAssignNew(ViewportToolbar, SRMEViewportToolBar, SharedThis(this));
 }
 
 void SRMEViewport::OnSetRootMotionViewMode(int32 ViewMode)

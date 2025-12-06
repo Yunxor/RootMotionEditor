@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "SMEViewportToolBar.h"
+#include "SRMEViewportToolBar.h"
 #include "SRMEViewport.h"
 #include "PreviewProfileController.h"
 #include "RMECommands.h"
@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "RootMotionEditedViewportToolBar"
 
-void SMEViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<SRMEViewport> InViewport)
+void SRMEViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<SRMEViewport> InViewport)
 {
 	SCommonEditorViewportToolbarBase::Construct(
 			SCommonEditorViewportToolbarBase::FArguments()
@@ -40,7 +40,7 @@ void SMEViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<SRMEView
 	ChildSlot.AttachWidget(TotalWidget);
 }
 
-TSharedRef<SWidget> SMEViewportToolBar::GenerateShowMenu() const
+TSharedRef<SWidget> SRMEViewportToolBar::GenerateShowMenu() const
 {
 	GetInfoProvider().OnFloatingButtonClicked();
 
