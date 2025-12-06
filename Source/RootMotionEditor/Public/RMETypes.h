@@ -9,34 +9,13 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRootMotionEditor, Log, All);
 
-namespace ERootMotionViewMode
+UENUM(BlueprintType)
+enum class ERMERootMotionViewMode :	uint8
 {
-	enum Type
-	{
-		None = 0,
-		AnimAsset,
-		CurveEditor,
-	};
-
-	static FString GetDisplayName(int32 InMode)
-	{
-		FString DisplayName = TEXT("None");
-		const ERootMotionViewMode::Type Type = static_cast<ERootMotionViewMode::Type>(InMode);
-		switch (Type)
-		{
-		case None:
-			DisplayName = TEXT("None");
-			break;
-		case AnimAsset:
-			DisplayName = TEXT("AnimAsset");
-			break;
-		case CurveEditor:
-			DisplayName = TEXT("CurveEditor");
-			break;
-		}
-		return DisplayName;
-	}
-}
+	None = 0,
+	Asset,
+	Editor,
+};
 
 UENUM(DisplayName = "Bone Extract Channel Type", meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class ERMEBoneExtractChannelType : uint32

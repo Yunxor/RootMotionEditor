@@ -81,9 +81,7 @@ protected:
 	virtual void BindCommands() override;
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
-	void OnSetRootMotionViewMode(int32 ViewMode);
-	bool IsRootMotionViewModeSet(int32 ViewMode) const;
-	int32 GetRootMotionViewMode() const;
+	int64 GetRootMotionViewMode() const;
 	// ~End of SEditorViewport interface
 
 

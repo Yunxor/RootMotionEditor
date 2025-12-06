@@ -37,6 +37,7 @@ public:
 	
 
 	void Construct(const FArguments& InArgs, const FRMEPreviewRequiredArgs& InRequiredArgs);
+	TSharedRef<SWidget> GenerateMenu() const;
 
 protected:
 	TAttribute<FLinearColor> SliderColor;

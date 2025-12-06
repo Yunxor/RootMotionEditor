@@ -3,6 +3,7 @@
 
 #include "RMEViewModel.h"
 #include "AnimPreviewInstance.h"
+#include "RMEContext.h"
 #include "RMEPreviewScene.h"
 #include "Animation/DebugSkelMeshComponent.h"
 
@@ -186,9 +187,9 @@ void FRMEViewModel::SetSelectedAnimation(UAnimSequence* InAnimation)
 	PreviewActor.SetupPreviewActor(GetWorld(), InAnimation);
 
 	// auto change view mode.
-	if (RootMotionViewMode == ERootMotionViewMode::None)
+	if (RootMotionViewMode == ERMERootMotionViewMode::None)
 	{
-		RootMotionViewMode = ERootMotionViewMode::AnimAsset;
+		RootMotionViewMode = ERMERootMotionViewMode::Asset;
 	}
 }
 
@@ -217,7 +218,7 @@ TRange<double> FRMEViewModel::GetPlayTimeRange() const
 	return TRange<double>(MinPreviewPlayLength - ViewRangeSlack, MaxPreviewPlayLength + ViewRangeSlack);
 }
 
-void FRMEViewModel::SetRootMotionViewMode(ERootMotionViewMode::Type InType)
+void FRMEViewModel::SetRootMotionViewMode(ERMERootMotionViewMode InType)
 {
 	RootMotionViewMode = InType;
 }
@@ -264,9 +265,9 @@ FTransform FRMEViewModel::GetRootMotionTransform(float Time) const
 	FTransform RootMotionTransform = FTransform::Identity;
 	
 	switch (GetRootMotionViewMode()) {
-	case ERootMotionViewMode::None:
+	case ERMERootMotionViewMode::None:
 		break;
-	case ERootMotionViewMode::AnimAsset:
+	case ERMERootMotionViewMode::Asset:
 		{
 			const UAnimSequence* AnimSeq = GetAnimation();
 			if (AnimSeq != nullptr)
@@ -280,7 +281,7 @@ FTransform FRMEViewModel::GetRootMotionTransform(float Time) const
 			}
 		}
 		break;
-	case ERootMotionViewMode::CurveEditor:
+	case ERMERootMotionViewMode::Editor:
 		if (const FRMEContext* Context = FRMEContext::Get())
 		{
 			RootMotionTransform = Context->GetCurveTransform(Time, 1.f);

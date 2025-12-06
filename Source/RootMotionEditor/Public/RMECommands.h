@@ -19,9 +19,6 @@ public:
 
 public:
 	TSharedPtr< FUICommandInfo > OpenPluginWindow;
-	TSharedPtr< FUICommandInfo > RootMotionNone;
-	TSharedPtr< FUICommandInfo > RootMotionFromAnimAsset;
-	TSharedPtr< FUICommandInfo > RootMotionFromCurveEditor;
 
 	/** Visualize root motion mode */
 	TSharedPtr< FUICommandInfo > DoNotVisualizeRootMotion;

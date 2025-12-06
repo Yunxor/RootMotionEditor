@@ -1,6 +1,5 @@
 #include "RMEContext.h"
 #include "RMEPreviewScene.h"
-#include "RMETypes.h"
 #include "RMEViewModel.h"
 #include "SRMEViewport.h"
 
@@ -86,12 +85,12 @@ UAnimSequence* FRMEContext::GetAnimationAsset() const
 	return CurrentAnimation;
 }
 
-void FRMEContext::SetRootMotionViewMode(int32 InViewMode)
+void FRMEContext::SetRootMotionViewMode(ERMERootMotionViewMode InViewMode)
 {
-	ViewModel->SetRootMotionViewMode(static_cast<ERootMotionViewMode::Type>(InViewMode));
+	ViewModel->SetRootMotionViewMode(InViewMode);
 }
 
-int32 FRMEContext::GetRootMotionViewMode() const
+ERMERootMotionViewMode FRMEContext::GetRootMotionViewMode() const
 {
 	return ViewModel->GetRootMotionViewMode();
 }

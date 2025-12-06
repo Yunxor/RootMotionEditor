@@ -56,8 +56,8 @@ public:
 
 	TRange<double> GetPlayTimeRange() const;
 
-	void SetRootMotionViewMode(ERootMotionViewMode::Type InType);
-	ERootMotionViewMode::Type GetRootMotionViewMode() const { return RootMotionViewMode; }
+	void SetRootMotionViewMode(ERMERootMotionViewMode InType);
+	ERMERootMotionViewMode GetRootMotionViewMode() const { return RootMotionViewMode; }
 
 	void PreviewBackwardEnd();
 	void PreviewBackwardStep();
@@ -86,5 +86,5 @@ private:
 	float MinPreviewPlayLength = 0.f;
 	float MaxPreviewPlayLength = 0.f;
 
-	 ERootMotionViewMode::Type RootMotionViewMode = ERootMotionViewMode::None;
+	 ERMERootMotionViewMode RootMotionViewMode = ERMERootMotionViewMode::None;
 };

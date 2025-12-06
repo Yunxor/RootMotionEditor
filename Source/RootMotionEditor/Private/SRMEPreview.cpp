@@ -5,6 +5,7 @@
 #include "RMEContext.h"
 #include "SRMEViewport.h"
 #include "SSimpleTimeSlider.h"
+#include "Widgets/Input/SSegmentedControl.h"
 
 #define LOCTEXT_NAMESPACE "RootMotionEditedCurveAssets"
 
@@ -115,6 +116,11 @@ void SRMEPreview::Construct(const FArguments& InArgs, const FRMEPreviewRequiredA
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			GenerateMenu()
+		]
+		+SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
 			SNew(SRMEViewport, InRequiredArgs)
@@ -159,6 +165,43 @@ void SRMEPreview::Construct(const FArguments& InArgs, const FRMEPreviewRequiredA
 			]
 		]
 	];
+}
+
+TSharedRef<SWidget> SRMEPreview::GenerateMenu() const
+{
+	FToolBarBuilder ToolBarBuilder(TSharedPtr<FUICommandList>(), FMultiBoxCustomization::None);
+
+	auto RootMotionViewModeControlWidget = SNew(SSegmentedControl<ERMERootMotionViewMode>)
+		.Value_Lambda([]()
+		{
+			if (FRMEContext* Context = FRMEContext::Get())
+			{
+				return Context->GetRootMotionViewMode();
+			}
+			return ERMERootMotionViewMode::None;
+		})
+		.OnValueChanged_Lambda([](ERMERootMotionViewMode NewMode)
+		{
+			if (FRMEContext* Context = FRMEContext::Get())
+			{
+				Context->SetRootMotionViewMode(NewMode);
+			}
+		})
+		+SSegmentedControl<ERMERootMotionViewMode>::Slot(ERMERootMotionViewMode::None)
+			.Text(LOCTEXT("RootMotionViewControl_None", "None"))
+			.ToolTip(LOCTEXT("RootMotionViewControl_NoneTooltip", "Don't apply root motion."))
+		+SSegmentedControl<ERMERootMotionViewMode>::Slot(ERMERootMotionViewMode::Asset)
+			.Text(LOCTEXT("RootMotionViewControl_Anim", "Asset"))
+			.ToolTip(LOCTEXT("RootMotionViewControl_AnimTooltip", "Apply root motion, and the data from the anim asset."))
+		+SSegmentedControl<ERMERootMotionViewMode>::Slot(ERMERootMotionViewMode::Editor)
+			.Text(LOCTEXT("RootMotionViewControl_Editor", "Editor"))
+			.ToolTip(LOCTEXT("RootMotionViewControl_EditorTooltip", "Apply root motion, and the data from the curve editor."));
+
+	ToolBarBuilder.AddToolBarWidget(RootMotionViewModeControlWidget, LOCTEXT("RootMotionViewControl_ToolBar", "Root Motion"));
+
+	ToolBarBuilder.AddSeparator();
+	
+	return ToolBarBuilder.MakeWidget();
 }
 
 #undef LOCTEXT_NAMESPACE

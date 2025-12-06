@@ -225,7 +225,7 @@ FText SRMEViewport::GetDisplayString() const
 		DefaultText = LOCTEXT("NoMesh", "No skeletal mesh.");
 	}
 
-	FText RootMotionModeText = FText::Format(LOCTEXT("RootMotionModeText", "Root Motion Mode: {0}"), FText::FromString(ERootMotionViewMode::GetDisplayName(GetRootMotionViewMode())));
+	FText RootMotionModeText = FText::Format(LOCTEXT("RootMotionModeText", "Root Motion Mode: {0}"), StaticEnum<ERMERootMotionViewMode>()->GetDisplayNameTextByValue(GetRootMotionViewMode()));
 	DefaultText = ConcatenateLine(DefaultText, RootMotionModeText);
 
 	FText VisualizeText = StaticEnum<EVisualizeRootMotionMode>()->GetDisplayNameTextByValue((int64)GetVisualizeRootMotionMode());
@@ -283,28 +283,6 @@ void SRMEViewport::BindCommands()
 	const FRMECommands& Commands = FRMECommands::Get();
 	
 	CommandList->MapAction(
-		Commands.RootMotionNone,
-		FExecuteAction::CreateSP(this, &SRMEViewport::OnSetRootMotionViewMode, (int32)ERootMotionViewMode::None),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SRMEViewport::IsRootMotionViewModeSet, (int32)ERootMotionViewMode::None)
-	);
-
-	CommandList->MapAction(
-		Commands.RootMotionFromAnimAsset,
-		FExecuteAction::CreateSP(this, &SRMEViewport::OnSetRootMotionViewMode, (int32)ERootMotionViewMode::AnimAsset),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SRMEViewport::IsRootMotionViewModeSet, (int32)ERootMotionViewMode::AnimAsset)
-	);
-
-	CommandList->MapAction(
-		Commands.RootMotionFromCurveEditor,
-		FExecuteAction::CreateSP(this, &SRMEViewport::OnSetRootMotionViewMode, (int32)ERootMotionViewMode::CurveEditor),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SRMEViewport::IsRootMotionViewModeSet, (int32)ERootMotionViewMode::CurveEditor)
-	);
-
-
-	CommandList->MapAction(
 		Commands.DoNotVisualizeRootMotion,
 		FExecuteAction::CreateSP(this, &SRMEViewport::SetVisualizeRootMotionMode, EVisualizeRootMotionMode::None),
 		FIsActionChecked::CreateSP(this, &SRMEViewport::CanVisualizeRootMotion),
@@ -343,30 +321,13 @@ TSharedPtr<SWidget> SRMEViewport::MakeViewportToolbar()
 	return SAssignNew(ViewportToolbar, SRMEViewportToolBar, SharedThis(this));
 }
 
-void SRMEViewport::OnSetRootMotionViewMode(int32 ViewMode)
+int64 SRMEViewport::GetRootMotionViewMode() const
 {
 	if (FRMEContext* Context = FRMEContext::Get())
 	{
-		Context->SetRootMotionViewMode(ViewMode);
+		return (int64)Context->GetRootMotionViewMode();
 	}
-	Invalidate();
-}
 
-bool SRMEViewport::IsRootMotionViewModeSet(int32 ViewMode) const
-{
-	if (FRMEContext* Context = FRMEContext::Get())
-	{
-		return Context->GetRootMotionViewMode() == ViewMode;
-	}
-	return false;
-}
-
-int32 SRMEViewport::GetRootMotionViewMode() const
-{
-	if (FRMEContext* Context = FRMEContext::Get())
-	{
-		return Context->GetRootMotionViewMode();
-	}
 	return 0;
 }
 

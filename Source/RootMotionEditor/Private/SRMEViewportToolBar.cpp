@@ -50,16 +50,6 @@ TSharedRef<SWidget> SRMEViewportToolBar::GenerateShowMenu() const
 	FMenuBuilder ShowMenuBuilder(bInShouldCloseWindowAfterMenuSelection, ViewportRef->GetCommandList());
 	{
 		const FRMECommands& Commands = FRMECommands::Get();
-		
-		{
-			ShowMenuBuilder.BeginSection("Debug", LOCTEXT("ShowMenu_DebugLabel", "Debug"));
-			ShowMenuBuilder.AddMenuEntry(Commands.RootMotionNone);
-			ShowMenuBuilder.AddMenuEntry(Commands.RootMotionFromAnimAsset);
-			ShowMenuBuilder.AddMenuEntry(Commands.RootMotionFromCurveEditor);
-			ShowMenuBuilder.EndSection();
-		}
-		
-		// TODO: bind view trajectory.
 		{
 			ShowMenuBuilder.BeginSection("AnimViewportVisualization", LOCTEXT("CharacterMenu_VisualizationsLabel", "Visualizations"));
 			ShowMenuBuilder.AddMenuEntry(Commands.DoNotVisualizeRootMotion);

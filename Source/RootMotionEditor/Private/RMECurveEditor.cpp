@@ -192,7 +192,7 @@ void FRMECurveEditor::RegisterTabSpawner(const TSharedPtr<FTabManager>& TabManag
 		{
 			if (FRMEViewModel* ViewModel = Context->GetViewModel())
 			{
-				ViewModel->SetRootMotionViewMode(ERootMotionViewMode::CurveEditor);
+				ViewModel->SetRootMotionViewMode(ERMERootMotionViewMode::Editor);
 			}
 		}
 	});

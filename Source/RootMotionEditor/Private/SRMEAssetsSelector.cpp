@@ -55,7 +55,7 @@ void SRMEAssetsSelector::Construct(const FArguments& InArgs)
 			SNew(SWarningOrErrorBox)
 			.Message(LOCTEXT("AssetsSelectorWarnings",
 				"You have already configured the same curve asset in multiple curve parameters, which will result in the data being overwritten when writing it."))
-			.Visibility_Lambda([this](){ return this->bHasRepeatedCurve ? EVisibility::Visible : EVisibility::Hidden; })
+			.Visibility_Lambda([this](){ return this->bHasRepeatedCurve ? EVisibility::Visible : EVisibility::Collapsed; })
 		]
 		+SScrollBox::Slot()
 		[

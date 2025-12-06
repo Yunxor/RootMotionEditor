@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "RMETypes.h"
 
 class URMECurveContainer;
 
@@ -31,8 +32,8 @@ public:
 	void SetAnimationAsset(UAnimSequence* InAnimationSequence);
 	UAnimSequence* GetAnimationAsset() const;
 
-	void SetRootMotionViewMode(int32 InViewMode);
-	int32 GetRootMotionViewMode() const;
+	void SetRootMotionViewMode(ERMERootMotionViewMode InViewMode);
+	ERMERootMotionViewMode GetRootMotionViewMode() const;
 
 
 	// Slider button callback
