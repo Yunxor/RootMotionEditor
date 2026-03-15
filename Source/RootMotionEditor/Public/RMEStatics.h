@@ -105,7 +105,7 @@ namespace RootMotionEditorStatics
 			Result.UpdateOrAddKey(TargetBoneTransform, Time);
 			LastBoneTransform = CurrentBoneTransform;
 
-			Time += SampleInterval;
+			Time = FMath::Clamp(Time + SampleInterval, 0.f, AnimLength);
 		}
 		
 		return Result;
@@ -142,12 +142,13 @@ namespace RootMotionEditorStatics
 #else
 			const FTransform& RootMotionDelta = AnimSequence->ExtractRootMotion(Time, SampleInterval, false);
 #endif
-			Time = FMath::Clamp(Time + SampleInterval, 0.f, AnimLength);
 
 			LastRootMotion = bIsAdditiveCurve ? RootMotionDelta : RootMotionDelta * LastRootMotion;
 			FTransform WriteTransform = LastRootMotion;
 			ExtractDataFilter(WriteTransform, ExtractChannel);
 			Result.UpdateOrAddKey(WriteTransform, Time);
+			
+			Time = FMath::Clamp(Time + SampleInterval, 0.f, AnimLength);
 		}
 		
 
