@@ -66,7 +66,7 @@ void FRMECurveEditorTreeItem::CreateCurveModels(TArray<TUniquePtr<FCurveModel>>&
 
 	TUniquePtr<FRichCurveEditorModelRaw> NewCurve = MakeUnique<FRichCurveEditorModelRaw>(CurveToEdit, CurveOwner.Get());
 	NewCurve->SetShortDisplayName(CurveName);
-	NewCurve->SetColor(CurveColor, false);
+	NewCurve->SetColor(CurveColor);
 	OutCurveModels.Add(MoveTemp(NewCurve));
 }
 

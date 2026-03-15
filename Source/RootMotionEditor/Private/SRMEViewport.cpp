@@ -316,7 +316,7 @@ TSharedRef<FEditorViewportClient> SRMEViewport::MakeEditorViewportClient()
 	return ViewportClient.ToSharedRef();
 }
 
-TSharedPtr<SWidget> SRMEViewport::MakeViewportToolbar()
+TSharedPtr<SWidget> SRMEViewport::BuildViewportToolbar()
 {
 	return SAssignNew(ViewportToolbar, SRMEViewportToolBar, SharedThis(this));
 }
