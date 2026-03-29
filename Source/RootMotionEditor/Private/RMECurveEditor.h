@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "CurveEditorTypes.h"
+#include "RMETypes.h"
 #include "Tree/ICurveEditorTreeItem.h"
 #include "UObject/Object.h"
 
@@ -43,6 +44,7 @@ public:
 	
 	static FText GetBoneMessage(bool bIsCustomBone);
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent);
+	bool AddPreviewKey(ERMEPreviewEditMode EditMode, float Time, const FTransform& Transform);
 	
 protected:
 	void AddNewCurve(class URMECurveContainer* Container);
@@ -70,6 +72,7 @@ private:
 	URMECurveContainer* GetCurveContainer() const;
 	
 	void AddNewCurveInternal(FVectorCurve& CurveData, UObject* CurveOwner, const FString& ChannelName);
+	static void UpdateOrAddVectorCurveKeys(FVectorCurve& CurveData, float Time, const FVector& Value);
 
 	
 private:
@@ -88,4 +91,5 @@ private:
 
 	bool bHasCurveEdited = false;
 	bool bIsSetCustomBone = false;
+	bool bHasEditorCurves = false;
 };

@@ -172,13 +172,21 @@ void FRMEViewModel::AddReferencedObjects(FReferenceCollector& Collector)
 void FRMEViewModel::Initialize(const TSharedRef<FRMEPreviewScene>& InPreviewScene)
 {
 	PreviewScenePtr = InPreviewScene;
+	ManipulatorTransform = FTransform::Identity;
 }
 
 void FRMEViewModel::Tick(float DeltaSeconds)
 {
 	const float DeltaPlayTime = DeltaSeconds * DeltaTimeMultiplier;
-	PlayTime = FMath::Clamp(PlayTime + DeltaPlayTime, 0.f, MaxPreviewPlayLength);
+	const float NewPlayTime = FMath::Clamp(PlayTime + DeltaPlayTime, 0.f, MaxPreviewPlayLength);
+	const bool bHasTimeChanged = !FMath::IsNearlyEqual(NewPlayTime, PlayTime);
+	PlayTime = NewPlayTime;
 	PreviewActor.UpdatePreviewActor(PlayTime, this);
+
+	if (bHasTimeChanged && PreviewEditMode != ERMEPreviewEditMode::View && !bManipulatorHasUserOverride)
+	{
+		SyncManipulatorToCurrentRootMotion();
+	}
 }
 
 void FRMEViewModel::SetSelectedAnimation(UAnimSequence* InAnimation)
@@ -191,6 +199,11 @@ void FRMEViewModel::SetSelectedAnimation(UAnimSequence* InAnimation)
 	{
 		RootMotionViewMode = ERMERootMotionViewMode::Asset;
 	}
+
+	if (PreviewEditMode != ERMEPreviewEditMode::View && !bManipulatorHasUserOverride)
+	{
+		SyncManipulatorToCurrentRootMotion();
+	}
 }
 
 
@@ -198,7 +211,7 @@ UWorld* FRMEViewModel::GetWorld()
 {
 	check(PreviewScenePtr.IsValid());
 	return PreviewScenePtr.Pin()->GetWorld();
-}
+} 
 
 void FRMEViewModel::SetPlayTime(float NewPlayTime, bool bInTickPlayTime)
 {
@@ -209,6 +222,12 @@ void FRMEViewModel::SetPlayTime(float NewPlayTime, bool bInTickPlayTime)
 	{
 		PlayTime = NewPlayTime;
 		PreviewActor.UpdatePreviewActor(PlayTime, this);
+
+		if (PreviewEditMode != ERMEPreviewEditMode::View)
+		{
+			// An explicit time change means the manipulator should snap to the current frame.
+			SyncManipulatorToCurrentRootMotion();
+		}
 	}
 }
 
@@ -221,6 +240,51 @@ TRange<double> FRMEViewModel::GetPlayTimeRange() const
 void FRMEViewModel::SetRootMotionViewMode(ERMERootMotionViewMode InType)
 {
 	RootMotionViewMode = InType;
+
+	if (PreviewEditMode != ERMEPreviewEditMode::View && !bManipulatorHasUserOverride)
+	{
+		SyncManipulatorToCurrentRootMotion();
+	}
+}
+
+void FRMEViewModel::SetPreviewEditMode(ERMEPreviewEditMode InType)
+{
+	PreviewEditMode = InType;
+
+	if (PreviewEditMode != ERMEPreviewEditMode::View)
+	{
+		PreviewPause();
+		SyncManipulatorToCurrentRootMotion();
+	}
+	else
+	{
+		ClearManipulatorUserOverride();
+	}
+}
+
+void FRMEViewModel::SyncManipulatorToCurrentRootMotion()
+{
+	ManipulatorTransform = GetRootMotionTransform(PlayTime);
+	ClearManipulatorUserOverride();
+}
+
+void FRMEViewModel::SetManipulatorTransform(const FTransform& InTransform)
+{
+	ManipulatorTransform = InTransform;
+	bManipulatorHasUserOverride = true;
+}
+
+void FRMEViewModel::SetManipulatorLocation(const FVector& InLocation)
+{
+	ManipulatorTransform.SetLocation(InLocation);
+	bManipulatorHasUserOverride = true;
+}
+
+void FRMEViewModel::AddManipulatorTranslation(const FVector& InTranslation)
+{
+	PreviewPause();
+	ManipulatorTransform.AddToTranslation(InTranslation);
+	bManipulatorHasUserOverride = true;
 }
 
 void FRMEViewModel::PreviewBackwardEnd()

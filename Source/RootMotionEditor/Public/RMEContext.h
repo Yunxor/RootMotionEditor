@@ -22,6 +22,8 @@ public:
 	void InitTab(TSharedPtr<class FTabManager> TabManager);
 
 	class FRMEViewModel* GetViewModel() const { return ViewModel.Get(); }
+	void SetCurveEditor(const TSharedPtr<class FRMECurveEditor>& InCurveEditor);
+	void ClearCurveEditor();
 
 	// view model
 	bool IsEditorSelection() const;
@@ -34,6 +36,15 @@ public:
 
 	void SetRootMotionViewMode(ERMERootMotionViewMode InViewMode);
 	ERMERootMotionViewMode GetRootMotionViewMode() const;
+
+	void SetPreviewEditMode(ERMEPreviewEditMode InEditMode);
+	ERMEPreviewEditMode GetPreviewEditMode() const;
+	FTransform GetPreviewManipulatorTransform() const;
+	FVector GetPreviewManipulatorLocation() const;
+	void SetPreviewManipulatorTransform(const FTransform& InTransform);
+	void SetPreviewManipulatorLocation(const FVector& InLocation);
+	void AddPreviewManipulatorTranslation(const FVector& InTranslation);
+	bool AddPreviewKeyAtCurrentTime();
 
 
 	// Slider button callback
@@ -56,6 +67,7 @@ protected:
 	TSharedPtr<class FTabManager> MainTagManager;
 	TSharedPtr<class FRMEViewModel> ViewModel;
 	TSharedPtr<class FRMEPreviewScene> PreviewScene;
+	TWeakPtr<class FRMECurveEditor> CurveEditorPtr;
 	
 	TObjectPtr<UAnimSequence> CurrentAnimation;
 

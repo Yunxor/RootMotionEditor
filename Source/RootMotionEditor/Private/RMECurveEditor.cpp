@@ -14,6 +14,7 @@
 #include "Tree/SCurveEditorTreePin.h"
 #include "Tree/SCurveEditorTreeSelect.h"
 #include "Tree/SCurveEditorTreeTextFilter.h"
+#include "Widgets/SWidget.h"
 #include "Widgets/Layout/SScrollBorder.h"
 #include "Widgets/Input/SSegmentedControl.h"
 
@@ -384,6 +385,60 @@ TSharedRef<SWidget> FRMECurveEditor::CreateCurveEditorToolbar()
 	return ToolBarBuilder.MakeWidget();
 }
 
+void FRMECurveEditor::UpdateOrAddVectorCurveKeys(FVectorCurve& CurveData, float Time, const FVector& Value)
+{
+	CurveData.FloatCurves[0].UpdateOrAddKey(Time, Value.X);
+	CurveData.FloatCurves[1].UpdateOrAddKey(Time, Value.Y);
+	CurveData.FloatCurves[2].UpdateOrAddKey(Time, Value.Z);
+}
+
+bool FRMECurveEditor::AddPreviewKey(ERMEPreviewEditMode EditMode, float Time, const FTransform& Transform)
+{
+	URMECurveContainer* CurveContainer = GetCurveContainer();
+	if (CurveContainer == nullptr)
+	{
+		return false;
+	}
+
+	FTransformCurve* CurveData = CurveContainer->GetOrCreateCurveData();
+	if (CurveData == nullptr)
+	{
+		return false;
+	}
+
+	bool bHasAddedKey = false;
+	switch (EditMode)
+	{
+	case ERMEPreviewEditMode::Translation:
+		UpdateOrAddVectorCurveKeys(CurveData->TranslationCurve, Time, Transform.GetLocation());
+		bHasAddedKey = true;
+		break;
+
+	case ERMEPreviewEditMode::Rotation:
+	case ERMEPreviewEditMode::Scale:
+	case ERMEPreviewEditMode::View:
+	default:
+		break;
+	}
+
+	if (!bHasAddedKey)
+	{
+		return false;
+	}
+
+	if (!bHasEditorCurves)
+	{
+		AddNewCurve(CurveContainer);
+	}
+	else if (CurveEditorPanel.IsValid())
+	{
+		CurveEditorPanel->Invalidate(EInvalidateWidgetReason::Paint);
+	}
+
+	bHasCurveEdited = true;
+	return true;
+}
+
 void FRMECurveEditor::AddNewCurveInternal(FVectorCurve& CurveData, UObject* CurveOwner, const FString& ChannelName)
 {
 	check(CurveEditor.IsValid());
@@ -430,6 +485,7 @@ void FRMECurveEditor::AddNewCurve(URMECurveContainer* Container)
 	
 	CurveEditor->ZoomToFit();
 
+	bHasEditorCurves = true;
 	bHasCurveEdited = true;
 }
 
@@ -450,6 +506,7 @@ void FRMECurveEditor::ClearEditorAllCurves()
 		CurveDataPtr->ClearAllKeys();
 	}
 
+	bHasEditorCurves = false;
 	bHasCurveEdited = false;
 }
 

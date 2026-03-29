@@ -47,6 +47,9 @@ namespace RootMotionEditor
 		virtual bool GetCustomInputCoordinateSystem(FMatrix& InMatrix, void* InData) override;
 
 	private:
+		bool CanEditWithManipulator() const;
+		void SyncWidgetSettings();
+
 		FRMEViewModel* ViewModel = nullptr;
 	};
 }

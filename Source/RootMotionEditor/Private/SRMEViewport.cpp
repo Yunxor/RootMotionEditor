@@ -228,6 +228,19 @@ FText SRMEViewport::GetDisplayString() const
 	FText RootMotionModeText = FText::Format(LOCTEXT("RootMotionModeText", "Root Motion Mode: {0}"), StaticEnum<ERMERootMotionViewMode>()->GetDisplayNameTextByValue(GetRootMotionViewMode()));
 	DefaultText = ConcatenateLine(DefaultText, RootMotionModeText);
 
+	if (FRMEContext* Context = FRMEContext::Get())
+	{
+		const FText PreviewEditModeText = FText::Format(
+			LOCTEXT("PreviewEditModeText", "Preview Tool: {0}"),
+			StaticEnum<ERMEPreviewEditMode>()->GetDisplayNameTextByValue((int64)Context->GetPreviewEditMode()));
+		DefaultText = ConcatenateLine(DefaultText, PreviewEditModeText);
+
+		if (Context->GetPreviewEditMode() == ERMEPreviewEditMode::Translation)
+		{
+			DefaultText = ConcatenateLine(DefaultText, LOCTEXT("PreviewEditModeHelp", "Move the widget and press S to save a translation key."));
+		}
+	}
+
 	FText VisualizeText = StaticEnum<EVisualizeRootMotionMode>()->GetDisplayNameTextByValue((int64)GetVisualizeRootMotionMode());
 	FText VisualizeModeText = FText::Format(LOCTEXT("VisualizeModeText", "Trajectory Mode: {0}"), VisualizeText);
 	DefaultText = ConcatenateLine(DefaultText, VisualizeModeText);

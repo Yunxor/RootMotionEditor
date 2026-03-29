@@ -200,6 +200,33 @@ TSharedRef<SWidget> SRMEPreview::GenerateMenu() const
 	ToolBarBuilder.AddToolBarWidget(RootMotionViewModeControlWidget, LOCTEXT("RootMotionViewControl_ToolBar", "Root Motion"));
 
 	ToolBarBuilder.AddSeparator();
+
+	auto PreviewEditModeControlWidget = SNew(SSegmentedControl<ERMEPreviewEditMode>)
+		.Value_Lambda([]()
+		{
+			if (FRMEContext* Context = FRMEContext::Get())
+			{
+				return Context->GetPreviewEditMode();
+			}
+			return ERMEPreviewEditMode::View;
+		})
+		.OnValueChanged_Lambda([](ERMEPreviewEditMode NewMode)
+		{
+			if (FRMEContext* Context = FRMEContext::Get())
+			{
+				Context->SetPreviewEditMode(NewMode);
+			}
+		})
+		+SSegmentedControl<ERMEPreviewEditMode>::Slot(ERMEPreviewEditMode::View)
+			.Text(LOCTEXT("PreviewEditMode_View", "View"))
+			.ToolTip(LOCTEXT("PreviewEditMode_ViewTooltip", "Preview only. Hide the transform widget."))
+		+SSegmentedControl<ERMEPreviewEditMode>::Slot(ERMEPreviewEditMode::Translation)
+			.Text(LOCTEXT("PreviewEditMode_Translation", "Move Key"))
+			.ToolTip(LOCTEXT("PreviewEditMode_TranslationTooltip", "Show a translation widget in the preview scene. Press S to save the current translation as a key."));
+
+	ToolBarBuilder.AddToolBarWidget(PreviewEditModeControlWidget, LOCTEXT("PreviewEditMode_ToolBar", "Preview Tool"));
+
+	ToolBarBuilder.AddSeparator();
 	
 	return ToolBarBuilder.MakeWidget();
 }

@@ -1,4 +1,5 @@
 #include "RMEContext.h"
+#include "RMECurveEditor.h"
 #include "RMEPreviewScene.h"
 #include "RMEViewModel.h"
 #include "SRMEViewport.h"
@@ -33,6 +34,7 @@ void FRMEContext::Setup()
 
 	ViewModel = MakeShared<FRMEViewModel>();
 	ViewModel->Initialize(PreviewScene.ToSharedRef());
+	CurveEditorPtr.Reset();
 
 	CurveDataPtr = URMECurveContainer::Create();
 }
@@ -51,6 +53,16 @@ FRMEPreviewRequiredArgs FRMEContext::MakePreviewRequiredArgs()
 void FRMEContext::InitTab(TSharedPtr<class FTabManager> TabManager)
 {
 	MainTagManager = TabManager;
+}
+
+void FRMEContext::SetCurveEditor(const TSharedPtr<FRMECurveEditor>& InCurveEditor)
+{
+	CurveEditorPtr = InCurveEditor;
+}
+
+void FRMEContext::ClearCurveEditor()
+{
+	CurveEditorPtr.Reset();
 }
 
 bool FRMEContext::IsEditorSelection() const
@@ -93,6 +105,68 @@ void FRMEContext::SetRootMotionViewMode(ERMERootMotionViewMode InViewMode)
 ERMERootMotionViewMode FRMEContext::GetRootMotionViewMode() const
 {
 	return ViewModel->GetRootMotionViewMode();
+}
+
+void FRMEContext::SetPreviewEditMode(ERMEPreviewEditMode InEditMode)
+{
+	ViewModel->SetPreviewEditMode(InEditMode);
+}
+
+ERMEPreviewEditMode FRMEContext::GetPreviewEditMode() const
+{
+	return ViewModel->GetPreviewEditMode();
+}
+
+FTransform FRMEContext::GetPreviewManipulatorTransform() const
+{
+	return ViewModel->GetManipulatorTransform();
+}
+
+FVector FRMEContext::GetPreviewManipulatorLocation() const
+{
+	return ViewModel->GetManipulatorLocation();
+}
+
+void FRMEContext::SetPreviewManipulatorTransform(const FTransform& InTransform)
+{
+	ViewModel->SetManipulatorTransform(InTransform);
+}
+
+void FRMEContext::SetPreviewManipulatorLocation(const FVector& InLocation)
+{
+	ViewModel->SetManipulatorLocation(InLocation);
+}
+
+void FRMEContext::AddPreviewManipulatorTranslation(const FVector& InTranslation)
+{
+	ViewModel->AddManipulatorTranslation(InTranslation);
+}
+
+bool FRMEContext::AddPreviewKeyAtCurrentTime()
+{
+	if (!ViewModel.IsValid())
+	{
+		return false;
+	}
+
+	TSharedPtr<FRMECurveEditor> CurveEditor = CurveEditorPtr.Pin();
+	if (!CurveEditor.IsValid())
+	{
+		return false;
+	}
+
+	const bool bHasAddedKey = CurveEditor->AddPreviewKey(
+		ViewModel->GetPreviewEditMode(),
+		ViewModel->GetPlayTime(),
+		ViewModel->GetManipulatorTransform());
+
+	if (bHasAddedKey)
+	{
+		ViewModel->SetRootMotionViewMode(ERMERootMotionViewMode::Editor);
+		ViewModel->SyncManipulatorToCurrentRootMotion();
+	}
+
+	return bHasAddedKey;
 }
 
 void FRMEContext::PreviewBackwardEnd()

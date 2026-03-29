@@ -17,6 +17,15 @@ enum class ERMERootMotionViewMode :	uint8
 	Editor,
 };
 
+UENUM(BlueprintType)
+enum class ERMEPreviewEditMode : uint8
+{
+	View = 0,
+	Translation,
+	Rotation,
+	Scale,
+};
+
 UENUM(DisplayName = "Bone Extract Channel Type", meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum class ERMEBoneExtractChannelType : uint32
 {

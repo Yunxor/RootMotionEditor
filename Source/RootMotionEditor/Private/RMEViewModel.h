@@ -59,6 +59,17 @@ public:
 	void SetRootMotionViewMode(ERMERootMotionViewMode InType);
 	ERMERootMotionViewMode GetRootMotionViewMode() const { return RootMotionViewMode; }
 
+	void SetPreviewEditMode(ERMEPreviewEditMode InType);
+	ERMEPreviewEditMode GetPreviewEditMode() const { return PreviewEditMode; }
+
+	void SyncManipulatorToCurrentRootMotion();
+	void ClearManipulatorUserOverride() { bManipulatorHasUserOverride = false; }
+	const FTransform& GetManipulatorTransform() const { return ManipulatorTransform; }
+	FVector GetManipulatorLocation() const { return ManipulatorTransform.GetLocation(); }
+	void SetManipulatorTransform(const FTransform& InTransform);
+	void SetManipulatorLocation(const FVector& InLocation);
+	void AddManipulatorTranslation(const FVector& InTranslation);
+
 	void PreviewBackwardEnd();
 	void PreviewBackwardStep();
 	void PreviewBackward();
@@ -86,5 +97,8 @@ private:
 	float MinPreviewPlayLength = 0.f;
 	float MaxPreviewPlayLength = 0.f;
 
-	 ERMERootMotionViewMode RootMotionViewMode = ERMERootMotionViewMode::None;
+	ERMERootMotionViewMode RootMotionViewMode = ERMERootMotionViewMode::None;
+	ERMEPreviewEditMode PreviewEditMode = ERMEPreviewEditMode::View;
+	FTransform ManipulatorTransform = FTransform::Identity;
+	bool bManipulatorHasUserOverride = false;
 };

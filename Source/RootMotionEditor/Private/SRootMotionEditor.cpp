@@ -87,6 +87,11 @@ SRootMotionEditor::SRootMotionEditor()
 
 SRootMotionEditor::~SRootMotionEditor()
 {
+	if (FRMEContext* Context = FRMEContext::Get())
+	{
+		Context->ClearCurveEditor();
+	}
+
 	if (CurveEditor.IsValid())
 	{
 		CurveEditor->OnDestroy();
@@ -113,6 +118,7 @@ void SRootMotionEditor::Construct(const FArguments& InArgs)
 		CurveEditor = MakeShared<FRMECurveEditor>();
 		CurveEditor->Initialize();
 	}
+	Context->SetCurveEditor(CurveEditor);
 	CurveEditor->RegisterTabSpawner(TabManager);
 	CurveEditor->RegisterConfigTabSpawner(TabManager);
 	
