@@ -127,6 +127,8 @@ class URMEAssetCollection : public UObject
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
 	TObjectPtr<class UAnimSequence> AnimSequence = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
+	TObjectPtr<class USkeletalMesh> PreviewMesh = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve", meta = (AllowedClasses = "/Script/Engine.CurveBase", DisallowedClasses = "/Script/Engine.CurveLinearColor, /Script/Engine.CurveFloat"))
 	TObjectPtr<class UCurveVector> MotionCurve = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Curve", meta = (AllowedClasses = "/Script/Engine.CurveBase", DisallowedClasses = "/Script/Engine.CurveLinearColor, /Script/Engine.CurveFloat"))

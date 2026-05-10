@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
+class IDetailsView;
+struct FPropertyChangedEvent;
+
 /**
  * 
  */
@@ -33,8 +36,22 @@ public:
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& ChangedEvent);
 	
 protected:
+	void ApplySelectionToContext() const;
+	void CommitSelectionState();
+	void RestoreCommittedSelection();
+	void SetPreviewMeshValue(class USkeletalMesh* InPreviewMesh, bool bManualOverride);
+	class USkeletalMesh* ResolveAnimationPreviewMesh(class UAnimSequence* InAnimation) const;
+	bool IsPreviewMeshCompatibleWithAnimation(const class USkeletalMesh* InPreviewMesh, const class UAnimSequence* InAnimation) const;
+	void HandleAnimationSequenceChanged();
+	void HandlePreviewMeshChanged();
+
 	TSharedPtr<IDetailsView> Widget;
 	TObjectPtr<class URMEAssetCollection> AssetCollection = nullptr;
 
 	bool bHasRepeatedCurve = false;
+	bool bHasManualPreviewMeshOverride = false;
+	bool bIsUpdatingAssetCollection = false;
+	bool bLastCommittedManualPreviewMeshOverride = false;
+	TWeakObjectPtr<class UAnimSequence> LastCommittedAnimation;
+	TWeakObjectPtr<class USkeletalMesh> LastCommittedPreviewMesh;
 };

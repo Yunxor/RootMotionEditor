@@ -13,7 +13,7 @@ class FRMEPreviewScene;
 struct FRootMotionEditorPreviewActor
 {
 public:
-	bool SetupPreviewActor(UWorld* World, UAnimSequence* InAnimation);
+	bool SetupPreviewActor(UWorld* World, UAnimSequence* InAnimation, class USkeletalMesh* InPreviewMesh);
 	void UpdatePreviewActor(float PlayTime, class FRMEViewModel* InViewModel);
 	void ClearPreviewActor();
 	bool DrawPreviewActor();
@@ -47,6 +47,8 @@ public:
 	void Tick(float DeltaSeconds);
 
 	void SetSelectedAnimation(UAnimSequence* InAnimation);
+	void SetPreviewAssetSelection(UAnimSequence* InAnimation, class USkeletalMesh* InPreviewMesh);
+	void SetPreviewMesh(class USkeletalMesh* InPreviewMesh);
 	
 	UWorld* GetWorld();
 
@@ -82,12 +84,14 @@ public:
 
 	UDebugSkelMeshComponent* GetDebugSkelMeshComponent() const { return PreviewActor.GetDebugSkelMeshComponent(); }
 	const UAnimSequence* GetAnimation() const { return PreviewActor.GetAnimAsset(); }
+	USkeletalMesh* GetPreviewMesh() const { return PreviewMesh.Get(); }
 	
 private:
 	FRootMotionEditorPreviewActor PreviewActor;
 
 	/** Weak pointer to the PreviewScene */
 	TWeakPtr<FRMEPreviewScene> PreviewScenePtr;
+	TWeakObjectPtr<class USkeletalMesh> PreviewMesh;
 
 	float PlayTime = 0.f;
 	float DeltaTimeMultiplier = 1.f;

@@ -31,8 +31,11 @@ public:
 	TRange<double> GetViewModelPlayTimeRange() const;
 	void SetViewModelPlayTime(float InPlayTime, bool bInTickPlayTime);
 
+	void SetPreviewAssets(UAnimSequence* InAnimationSequence, class USkeletalMesh* InPreviewMesh);
 	void SetAnimationAsset(UAnimSequence* InAnimationSequence);
 	UAnimSequence* GetAnimationAsset() const;
+	void SetPreviewMeshAsset(class USkeletalMesh* InPreviewMesh);
+	class USkeletalMesh* GetPreviewMeshAsset() const;
 
 	void SetRootMotionViewMode(ERMERootMotionViewMode InViewMode);
 	ERMERootMotionViewMode GetRootMotionViewMode() const;
@@ -70,6 +73,7 @@ protected:
 	TWeakPtr<class FRMECurveEditor> CurveEditorPtr;
 	
 	TObjectPtr<UAnimSequence> CurrentAnimation;
+	TObjectPtr<class USkeletalMesh> CurrentPreviewMesh;
 
 private:
 	static FRMEContext* Instance;

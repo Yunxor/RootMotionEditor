@@ -6,9 +6,10 @@
 #include "RMEContext.h"
 #include "RMEPreviewScene.h"
 #include "Animation/DebugSkelMeshComponent.h"
+#include "Animation/Skeleton.h"
 
 
-bool FRootMotionEditorPreviewActor::SetupPreviewActor(UWorld* World, UAnimSequence* InAnimation)
+bool FRootMotionEditorPreviewActor::SetupPreviewActor(UWorld* World, UAnimSequence* InAnimation, USkeletalMesh* InPreviewMesh)
 {
 	if (InAnimation == nullptr)
 	{
@@ -24,9 +25,10 @@ bool FRootMotionEditorPreviewActor::SetupPreviewActor(UWorld* World, UAnimSequen
 	}
 
 	AnimAssetPtr = InAnimation;
+	USkeletalMesh* DesiredPreviewMesh = InPreviewMesh != nullptr ? InPreviewMesh : Skeleton->GetAssetPreviewMesh(InAnimation);
 
 	UAnimPreviewInstance* AnimInstance;
-	if (ActorPtr == nullptr)
+	if (!ActorPtr.IsValid())
 	{
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
@@ -41,8 +43,7 @@ bool FRootMotionEditorPreviewActor::SetupPreviewActor(UWorld* World, UAnimSequen
 		Mesh->PreviewInstance = AnimInstance;
 		AnimInstance->InitializeAnimation();
 
-		USkeletalMesh* DatabasePreviewMesh = InAnimation->GetPreviewMesh();
-		Mesh->SetSkeletalMesh(DatabasePreviewMesh ? DatabasePreviewMesh : Skeleton->GetPreviewMesh(true));
+		Mesh->SetSkeletalMesh(DesiredPreviewMesh);
 		Mesh->EnablePreview(true, InAnimation);
 		
 		if (!ActorPtr->GetRootComponent())
@@ -61,9 +62,7 @@ bool FRootMotionEditorPreviewActor::SetupPreviewActor(UWorld* World, UAnimSequen
 		
 		AnimInstance = GetAnimPreviewInstance();
 
-		// todo : preview settings control it.
-		USkeletalMesh* DatabasePreviewMesh = InAnimation->GetPreviewMesh();
-		Mesh->SetSkeletalMesh(DatabasePreviewMesh ? DatabasePreviewMesh : Skeleton->GetPreviewMesh(true));
+		Mesh->SetSkeletalMesh(DesiredPreviewMesh);
 		Mesh->EnablePreview(true, InAnimation);
 	}
 
@@ -117,6 +116,7 @@ void FRootMotionEditorPreviewActor::ClearPreviewActor()
 	}
 	
 	AnimAssetPtr = nullptr;
+	ActorPtr = nullptr;
 }
 
 bool FRootMotionEditorPreviewActor::DrawPreviewActor()
@@ -191,8 +191,32 @@ void FRMEViewModel::Tick(float DeltaSeconds)
 
 void FRMEViewModel::SetSelectedAnimation(UAnimSequence* InAnimation)
 {
+	SetPreviewAssetSelection(InAnimation, PreviewMesh.Get());
+
+	// auto change view mode.
+	if (RootMotionViewMode == ERMERootMotionViewMode::None)
+	{
+		RootMotionViewMode = ERMERootMotionViewMode::Asset;
+	}
+
+	if (PreviewEditMode != ERMEPreviewEditMode::View && !bManipulatorHasUserOverride)
+	{
+		SyncManipulatorToCurrentRootMotion();
+	}
+}
+
+void FRMEViewModel::SetPreviewAssetSelection(UAnimSequence* InAnimation, USkeletalMesh* InPreviewMesh)
+{
+	PreviewMesh = InPreviewMesh;
 	MaxPreviewPlayLength = InAnimation ? InAnimation->GetPlayLength() : 0.f;
-	PreviewActor.SetupPreviewActor(GetWorld(), InAnimation);
+	PlayTime = FMath::Clamp(PlayTime, MinPreviewPlayLength, MaxPreviewPlayLength);
+	PreviewActor.SetupPreviewActor(GetWorld(), InAnimation, InPreviewMesh);
+	PreviewActor.UpdatePreviewActor(PlayTime, this);
+}
+
+void FRMEViewModel::SetPreviewMesh(USkeletalMesh* InPreviewMesh)
+{
+	SetPreviewAssetSelection(const_cast<UAnimSequence*>(GetAnimation()), InPreviewMesh);
 
 	// auto change view mode.
 	if (RootMotionViewMode == ERMERootMotionViewMode::None)

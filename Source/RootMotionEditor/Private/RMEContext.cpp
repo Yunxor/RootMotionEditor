@@ -42,6 +42,8 @@ void FRMEContext::Setup()
 void FRMEContext::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObject(CurveDataPtr);
+	Collector.AddReferencedObject(CurrentAnimation);
+	Collector.AddReferencedObject(CurrentPreviewMesh);
 }
 
 FRMEPreviewRequiredArgs FRMEContext::MakePreviewRequiredArgs()
@@ -86,15 +88,31 @@ void FRMEContext::SetViewModelPlayTime(float InPlayTime, bool bInTickPlayTime)
 	ViewModel->SetPlayTime(InPlayTime, bInTickPlayTime);
 }
 
-void FRMEContext::SetAnimationAsset(UAnimSequence* InAnimationSequence)
+void FRMEContext::SetPreviewAssets(UAnimSequence* InAnimationSequence, USkeletalMesh* InPreviewMesh)
 {
 	CurrentAnimation = InAnimationSequence;
-	ViewModel->SetSelectedAnimation(InAnimationSequence);
+	CurrentPreviewMesh = InPreviewMesh;
+	ViewModel->SetPreviewAssetSelection(InAnimationSequence, InPreviewMesh);
+}
+
+void FRMEContext::SetAnimationAsset(UAnimSequence* InAnimationSequence)
+{
+	SetPreviewAssets(InAnimationSequence, CurrentPreviewMesh);
 }
 
 UAnimSequence* FRMEContext::GetAnimationAsset() const
 {
 	return CurrentAnimation;
+}
+
+void FRMEContext::SetPreviewMeshAsset(USkeletalMesh* InPreviewMesh)
+{
+	SetPreviewAssets(CurrentAnimation, InPreviewMesh);
+}
+
+USkeletalMesh* FRMEContext::GetPreviewMeshAsset() const
+{
+	return CurrentPreviewMesh;
 }
 
 void FRMEContext::SetRootMotionViewMode(ERMERootMotionViewMode InViewMode)
